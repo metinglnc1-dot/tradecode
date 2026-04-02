@@ -1,7 +1,7 @@
 import type {
   Asset, AnalysisReport, StructureResult, FVG, Zones,
   TradeSetup, LongTermPlan, PriceMapLevel, FundingResult, MacroResult, AMDResult,
-  FetchResult, VolumeProfile,
+  FetchResult, VolumeProfile, OIResult, LongShortResult,
 } from "./types";
 import {
   findSwings, analyzeStructure, findFVGs, findZones,
@@ -13,7 +13,7 @@ import { analyzeNews } from "./news-engine";
 // ─── Build full analysis report ──────────────────────────────────────────────
 
 export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
-  const { klines4h, klines15m, klinesDaily, ticker, funding, gecko, coinglassLiq, newsHeadlines, sources } = data;
+  const { klines4h, klines15m, klinesDaily, ticker, funding, gecko, coinglassOI, coinglassLiq, coinglassLS, newsHeadlines, sources } = data;
 
   // Current price
   let currentPrice = 0;
@@ -67,6 +67,35 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
   // Funding
   const fundingResult = analyzeFunding(funding);
 
+  // Open Interest (OKX public endpoint)
+  const oiResult: OIResult = coinglassOI
+    ? (() => {
+        const usd = parseFloat(coinglassOI.oiUsd ?? "0");
+        const contracts = parseFloat(coinglassOI.oiCcy ?? coinglassOI.oi ?? "0");
+        const fmtUsd = usd >= 1e9
+          ? `$${(usd / 1e9).toFixed(2)}B`
+          : usd >= 1e6
+            ? `$${(usd / 1e6).toFixed(1)}M`
+            : `$${usd.toFixed(0)}`;
+        return { oiUsd: fmtUsd, oiContracts: contracts.toFixed(0), available: true };
+      })()
+    : { oiUsd: "–", oiContracts: "–", available: false };
+
+  // Long/Short ratio (OKX public endpoint)
+  const longShortResult: LongShortResult = coinglassLS
+    ? (() => {
+        const r = coinglassLS.ratio as number;
+        let interpretation = "Nötr";
+        if (r > 2.5) interpretation = "Aşırı Long — squeeze riski ↑";
+        else if (r > 1.8) interpretation = "Long dominant — dikkatli";
+        else if (r > 1.2) interpretation = "Hafif long ağırlıklı";
+        else if (r > 0.8) interpretation = "Dengeli";
+        else if (r > 0.5) interpretation = "Hafif short ağırlıklı";
+        else interpretation = "Aşırı Short — short squeeze riski ↑";
+        return { ratio: r, interpretation, available: true };
+      })()
+    : { ratio: 0, interpretation: "–", available: false };
+
   // Liquidation
   const liquidation = estimateLiquidation(swings4h, currentPrice, coinglassLiq);
 
@@ -85,7 +114,7 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
 
   // Decision
   const { decision, confidence, bestSetup, riskNote } = makeDecision(
-    struct4h, struct15m, fundingResult, macro, amd, orderFlow, zones, currentPrice
+    struct4h, struct15m, fundingResult, macro, amd, orderFlow, zones, currentPrice, longShortResult
   );
 
   // Price map
@@ -101,6 +130,8 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
     fvgs4h, fvgs15m,
     zones, amd, orderFlow,
     funding: fundingResult,
+    oi: oiResult,
+    longShort: longShortResult,
     liquidation, macro,
     longSetup, shortSetup, longTermPlan,
     decision, confidence, bestSetup, riskNote,
@@ -235,7 +266,8 @@ function makeDecision(
   s4h: StructureResult, s15m: StructureResult,
   funding: FundingResult, macro: MacroResult,
   amd: AMDResult, orderFlow: import("./types").OrderFlowResult,
-  zones: Zones, price: number
+  zones: Zones, price: number,
+  longShort?: LongShortResult,
 ) {
   let score = 5; // Base confidence
   let decision: "LONG" | "SHORT" | "WAIT" = "WAIT";
@@ -249,8 +281,10 @@ function makeDecision(
   else { score -= 1; } // Conflict
 
   // AMD alignment
-  if (amd.phase === "distribution" && decision === "LONG") score += 0.5;
   if (amd.phase === "accumulation" && decision === "LONG") score += 1;
+  if (amd.phase === "distribution" && decision === "SHORT") score += 0.5;
+  if (amd.phase === "distribution" && decision === "LONG") score -= 1;
+  if (amd.phase === "accumulation" && decision === "SHORT") score -= 0.5;
   if (amd.phase === "manipulation") score -= 0.5;
 
   // Order flow momentum
@@ -261,6 +295,14 @@ function makeDecision(
   // Funding alignment
   if (funding.bias === "bearish_signal") { score -= 1; riskNote += "Funding aşırı pozitif — kalabalık long. "; }
   if (funding.bias === "bullish_signal" && decision === "SHORT") score -= 1;
+
+  // Long/Short ratio
+  if (longShort?.available) {
+    if (longShort.ratio > 2.5 && decision === "SHORT") { score += 0.5; riskNote += "L/S > 2.5 — long squeeze riski var. "; }
+    if (longShort.ratio > 2.5 && decision === "LONG") score -= 0.5;
+    if (longShort.ratio < 0.5 && decision === "LONG") { score += 0.5; riskNote += "L/S < 0.5 — short squeeze riski var. "; }
+    if (longShort.ratio < 0.5 && decision === "SHORT") score -= 0.5;
+  }
 
   // Macro impact
   if (macro.available) {

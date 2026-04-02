@@ -204,6 +204,18 @@ export interface FetchResult {
 
 // ─── Full Report ─────────────────────────────────────────────────────────────
 
+export interface OIResult {
+  oiUsd: string;        // formatted e.g. "$2.05B"
+  oiContracts: string;  // raw contracts
+  available: boolean;
+}
+
+export interface LongShortResult {
+  ratio: number;
+  interpretation: string;
+  available: boolean;
+}
+
 export interface AnalysisReport {
   asset: Asset;
   timestamp: string;
@@ -226,6 +238,8 @@ export interface AnalysisReport {
   amd: AMDResult;
   orderFlow: OrderFlowResult;
   funding: FundingResult;
+  oi: OIResult;
+  longShort: LongShortResult;
   liquidation: LiquidationResult;
   macro: MacroResult;
 

@@ -59,6 +59,19 @@ async function fetchOKXFunding(asset: "BTC" | "ETH") {
   return data[0] ?? null;
 }
 
+async function fetchOKXOpenInterest(asset: "BTC" | "ETH") {
+  const uly = asset === "BTC" ? "BTC-USDT" : "ETH-USDT";
+  const data = await okxGet(`/api/v5/public/open-interest?instType=SWAP&uly=${uly}`);
+  return data[0] ?? null; // { oi, oiCcy, oiUsd, ts }
+}
+
+async function fetchOKXLongShort(asset: "BTC" | "ETH") {
+  const ccy = asset === "BTC" ? "BTC" : "ETH";
+  const data = await okxGet(`/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${ccy}&period=1H`);
+  // returns [[ts, ratio], ...] newest first — take latest
+  return data[0] ? { ts: data[0][0], ratio: parseFloat(data[0][1]) } : null;
+}
+
 // ─── CoinGecko helpers ───────────────────────────────────────────────────────
 
 const GECKO_IDS: Record<string, string> = {
@@ -241,6 +254,8 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     PromiseSettledResult<any>,
     PromiseSettledResult<any>,
     PromiseSettledResult<RSSItem[]>,
+    PromiseSettledResult<any>,
+    PromiseSettledResult<any>,
   ];
 
   if (isCrypto) {
@@ -252,6 +267,8 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       fetchOKXFunding(asset as "BTC" | "ETH"),
       fetchGeckoMarket(asset),
       fetchNewsHeadlines(),
+      fetchOKXOpenInterest(asset as "BTC" | "ETH"),
+      fetchOKXLongShort(asset as "BTC" | "ETH"),
     ]) as typeof results;
   } else {
     // Gold: sequential to avoid CoinGecko rate limiting
@@ -290,7 +307,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     };
   }
 
-  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, newsR] = results;
+  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, newsR, oiR, lsR] = results;
   const prefix = `OKX ${asset}`;
 
   return {
@@ -300,15 +317,13 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     klinesDaily: track(kDayR, `${prefix} Daily (200 bar)`, [] as Candle[]),
     funding: track(fundingR, `OKX ${asset} Funding Rate`, null),
     gecko: track(geckoR, `CoinGecko ${asset}`, null),
-    coinglassOI: null,
+    coinglassOI: track(oiR, `OKX ${asset} Open Interest`, null),
     coinglassLiq: null,
-    coinglassLS: null,
+    coinglassLS: track(lsR, `OKX ${asset} L/S Ratio`, null),
     newsHeadlines: track(newsR, "RSS Feeds (allorigins CORS proxy)", [] as RSSItem[]),
     sources: [
       ...sources,
-      { name: "CoinGlass OI", status: "failed" as const, detail: "API key gerekli — .env.local: COINGLASS_API_KEY" },
       { name: "CoinGlass Liquidation", status: "failed" as const, detail: "API key gerekli" },
-      { name: "CoinGlass L/S Ratio", status: "failed" as const, detail: "API key gerekli" },
     ],
   };
 }

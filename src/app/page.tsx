@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { AnalysisReport } from "@/lib/types";
 import { fetchAllBrowser } from "@/lib/browser-fetchers";
 import { buildReport } from "@/lib/report";
@@ -14,14 +14,18 @@ export default function Home() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const REFRESH_SECS = 300; // 5 minutes
 
   const analyze = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch data from external APIs directly in the browser
       const data = await fetchAllBrowser(asset);
-      // Run the SMC analysis engine
       const result = buildReport(asset, data);
       setReport(result);
     } catch (e: any) {
@@ -30,6 +34,28 @@ export default function Home() {
       setLoading(false);
     }
   }, [asset]);
+
+  // Auto-refresh logic
+  useEffect(() => {
+    if (!autoRefresh) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (countRef.current) clearInterval(countRef.current);
+      setCountdown(0);
+      return;
+    }
+    setCountdown(REFRESH_SECS);
+    timerRef.current = setInterval(() => {
+      analyze();
+      setCountdown(REFRESH_SECS);
+    }, REFRESH_SECS * 1000);
+    countRef.current = setInterval(() => {
+      setCountdown((c) => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (countRef.current) clearInterval(countRef.current);
+    };
+  }, [autoRefresh, analyze]);
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-6">
@@ -59,23 +85,36 @@ export default function Home() {
           </button>
         ))}
 
-        <button
-          onClick={analyze}
-          disabled={loading}
-          className="ml-auto px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Veri çekiliyor...
-            </>
-          ) : (
-            "Analiz Et"
-          )}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setAutoRefresh((v) => !v)}
+            className={`px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+              autoRefresh
+                ? "bg-blue-700 text-blue-100 hover:bg-blue-600"
+                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+            }`}
+            title="5 dakikada bir otomatik yenile"
+          >
+            {autoRefresh ? `↻ ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}` : "↻ Oto"}
+          </button>
+          <button
+            onClick={analyze}
+            disabled={loading}
+            className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Veri çekiliyor...
+              </>
+            ) : (
+              "Analiz Et"
+            )}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -289,22 +328,28 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
             )}
           </Group>
 
-          {/* Funding */}
+          {/* Funding / OI / L/S */}
           <Group title="OI / Funding / Positioning">
-            {r.funding.rate === null ? (
-              <>
-                <Row label="OI" value="Veri yetersiz / kaynak erişilemedi" />
-                <Row label="Funding" value="Veri yetersiz / kaynak erişilemedi" />
-                <Row label="L/S Oranı" value="Veri yetersiz / kaynak erişilemedi" />
-              </>
-            ) : (
-              <>
-                <Row label="Funding Rate" value={`${r.funding.ratePct} (${r.funding.annualized})`} />
-                <Row label="Yorum" value={r.funding.interpretation} />
-              </>
-            )}
-            <Row label="CoinGlass OI" value="Veri yetersiz / kaynak erişilemedi (API key gerekli)" />
-            <Row label="CoinGlass L/S" value="Veri yetersiz / kaynak erişilemedi (API key gerekli)" />
+            {r.oi.available
+              ? <Row label="Open Interest" value={`${r.oi.oiUsd} (${r.oi.oiContracts} kontrat)`} />
+              : <Row label="Open Interest" value="Veri yetersiz / kaynak erişilemedi" />
+            }
+            {r.funding.rate === null
+              ? <Row label="Funding Rate" value="Veri yetersiz / kaynak erişilemedi" />
+              : <>
+                  <Row label="Funding Rate" value={`${r.funding.ratePct} (${r.funding.annualized})`} />
+                  <Row label="Funding Yorum" value={r.funding.interpretation} />
+                </>
+            }
+            {r.longShort.available
+              ? <Row
+                  label="L/S Oranı"
+                  value={`${r.longShort.ratio.toFixed(2)} — ${r.longShort.interpretation}`}
+                  highlight={r.longShort.ratio > 2 ? "red" : r.longShort.ratio < 0.6 ? "green" : "none"}
+                />
+              : <Row label="L/S Oranı" value="Veri yetersiz / kaynak erişilemedi" />
+            }
+            <Row label="CoinGlass Likidasyon" value="Veri yetersiz / kaynak erişilemedi (API key gerekli)" />
           </Group>
         </div>
       </Section>
