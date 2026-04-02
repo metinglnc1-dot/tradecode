@@ -1,122 +1,122 @@
 import axios from "axios";
-import type { Asset, Candle, SourceStatus } from "./types";
+import type { Asset, Candle, SourceStatus, FetchResult } from "./types";
 
 const TIMEOUT = 10000;
-const UA = "Mozilla/5.0 (compatible; TradeCode/1.0)";
-
-// ─── OKX helpers ─────────────────────────────────────────────────────────────
-
-const OKX_INST: Record<string, string> = {
-  BTC: "BTC-USDT-SWAP",
-  ETH: "ETH-USDT-SWAP",
+// Full browser headers to avoid 403 on strict APIs
+const HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
 };
 
-async function okxGet(path: string) {
-  const res = await axios.get(`https://www.okx.com${path}`, {
+// ─── Gate.io Futures helpers ─────────────────────────────────────────────────
+
+const GATE_CONTRACT: Record<string, string> = {
+  BTC: "BTC_USDT",
+  ETH: "ETH_USDT",
+};
+
+const GATE_BASE = "https://api.gateio.ws/api/v4/futures/usdt";
+
+async function gateGet(path: string) {
+  const res = await axios.get(`${GATE_BASE}${path}`, {
     timeout: TIMEOUT,
-    headers: { "User-Agent": UA },
+    headers: HEADERS,
   });
-  if (res.data?.code !== "0") throw new Error(res.data?.msg || "OKX error");
-  return res.data.data;
+  return res.data;
 }
 
-export function parseOKXCandles(raw: string[][]): Candle[] {
-  return raw
+// Gate.io candle format: {t (seconds), o, h, l, c, v, sum}
+function parseGateCandles(data: any[]): Candle[] {
+  if (!Array.isArray(data)) return [];
+  return data
     .map((c) => ({
-      timestamp: parseInt(c[0]),
-      open: parseFloat(c[1]),
-      high: parseFloat(c[2]),
-      low: parseFloat(c[3]),
-      close: parseFloat(c[4]),
-      vol: parseFloat(c[5]),
-      confirmed: c[8] === "1",
+      timestamp: c.t * 1000, // seconds → ms
+      open: parseFloat(c.o),
+      high: parseFloat(c.h),
+      low: parseFloat(c.l),
+      close: parseFloat(c.c),
+      vol: parseFloat(c.v),
+      confirmed: true,
     }))
-    .reverse(); // oldest-first
+    .sort((a, b) => a.timestamp - b.timestamp); // oldest-first
 }
 
-// ─── OKX: Ticker ─────────────────────────────────────────────────────────────
+// ─── Gate.io: Ticker ─────────────────────────────────────────────────────────
 
-export async function fetchOKXTicker(asset: Asset) {
-  const inst = OKX_INST[asset];
-  if (!inst) return null;
-  const data = await okxGet(`/api/v5/market/ticker?instId=${inst}`);
-  return data?.[0] ?? null;
+export async function fetchGateFuturesTicker(asset: Asset) {
+  const contract = GATE_CONTRACT[asset];
+  if (!contract) return null;
+  const data = await gateGet(`/tickers?contract=${contract}`);
+  return Array.isArray(data) ? data[0] : data;
 }
 
-// ─── OKX: Klines ─────────────────────────────────────────────────────────────
+// ─── Gate.io: Klines ─────────────────────────────────────────────────────────
 
-export async function fetchOKXKlines(
-  asset: Asset,
-  bar: string,
-  limit = 100
-): Promise<Candle[]> {
-  const inst = OKX_INST[asset];
-  if (!inst) return [];
-  const data = await okxGet(
-    `/api/v5/market/candles?instId=${inst}&bar=${bar}&limit=${limit}`
-  );
-  return parseOKXCandles(data ?? []);
+// Gate.io intervals: 10s, 1m, 5m, 15m, 30m, 1h, 4h, 8h, 1d, 7d, 30d
+export async function fetchGateKlines(asset: Asset, interval: string, limit = 100): Promise<Candle[]> {
+  const contract = GATE_CONTRACT[asset];
+  if (!contract) return [];
+  const data = await gateGet(`/candlesticks?contract=${contract}&interval=${interval}&limit=${limit}`);
+  return parseGateCandles(data ?? []);
 }
 
-// ─── OKX: Funding rate ──────────────────────────────────────────────────────
+// ─── Gate.io: Funding Rate ───────────────────────────────────────────────────
 
-export async function fetchOKXFunding(asset: Asset) {
-  const inst = OKX_INST[asset];
-  if (!inst) return null;
-  const data = await okxGet(`/api/v5/public/funding-rate?instId=${inst}`);
-  return data?.[0] ?? null;
+export async function fetchGateFunding(asset: Asset) {
+  const contract = GATE_CONTRACT[asset];
+  if (!contract) return null;
+  const data = await gateGet(`/tickers?contract=${contract}`);
+  const ticker = Array.isArray(data) ? data[0] : data;
+  if (!ticker) return null;
+  return {
+    fundingRate: ticker.funding_rate ?? "0",
+    nextFundingTime: ticker.funding_next_apply ?? null,
+  };
 }
 
-// ─── CoinGecko: Market data ─────────────────────────────────────────────────
+// ─── Gate.io: Long/Short Ratio ───────────────────────────────────────────────
+
+export async function fetchGateLSRatio(asset: Asset) {
+  try {
+    const contract = GATE_CONTRACT[asset];
+    if (!contract) return null;
+    const data = await gateGet(`/liq_orders?contract=${contract}&status=filled&limit=100`);
+    return data; // approximate from liquidation data
+  } catch {
+    return null;
+  }
+}
+
+// ─── CoinGecko: Market data ──────────────────────────────────────────────────
 
 const GECKO_IDS: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
-  GOLD: "gold", // tether-gold or pax-gold fallback handled below
+  GOLD: "pax-gold", // PAX Gold tracks gold price
 };
 
 export async function fetchGeckoMarket(asset: Asset) {
-  let id = GECKO_IDS[asset];
+  const id = GECKO_IDS[asset];
   if (!id) return null;
-
-  // CoinGecko doesn't have a "gold" commodity — use pax-gold as proxy for trend data
-  if (asset === "GOLD") id = "pax-gold";
-
   const res = await axios.get(
     `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true&community_data=false`,
-    { timeout: TIMEOUT }
+    { timeout: TIMEOUT, headers: HEADERS }
   );
   return res.data?.market_data ?? null;
 }
 
-// ─── Gate.io: Ticker (backup) ───────────────────────────────────────────────
+// ─── Yahoo Finance: Gold OHLCV ───────────────────────────────────────────────
 
-export async function fetchGateTicker(asset: Asset) {
-  const pair =
-    asset === "BTC"
-      ? "BTC_USDT"
-      : asset === "ETH"
-        ? "ETH_USDT"
-        : null;
-  if (!pair) return null;
-  const res = await axios.get(
-    `https://api.gateio.ws/api/v4/spot/tickers?currency_pair=${pair}`,
-    { timeout: TIMEOUT }
-  );
-  return res.data?.[0] ?? null;
-}
-
-// ─── Gold: OHLCV via Yahoo Finance ──────────────────────────────────────────
-
-function parseYahooCandles(chart: any): Candle[] {
-  const result = chart?.chart?.result?.[0];
+function parseYahooCandles(data: any): Candle[] {
+  const result = data?.chart?.result?.[0];
   if (!result) return [];
-  const ts = result.timestamp ?? [];
+  const ts: number[] = result.timestamp ?? [];
   const q = result.indicators?.quote?.[0];
   if (!q) return [];
   const candles: Candle[] = [];
   for (let i = 0; i < ts.length; i++) {
-    if (q.open[i] == null) continue;
+    if (q.open?.[i] == null || q.close?.[i] == null) continue;
     candles.push({
       timestamp: ts[i] * 1000,
       open: q.open[i],
@@ -127,78 +127,60 @@ function parseYahooCandles(chart: any): Candle[] {
       confirmed: i < ts.length - 1,
     });
   }
-  return candles;
+  return candles.sort((a, b) => a.timestamp - b.timestamp);
 }
 
-export async function fetchGoldKlines(
-  interval: string,
-  range: string
-): Promise<Candle[]> {
-  try {
-    const res = await axios.get(
-      `https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=${interval}&range=${range}`,
-      { timeout: TIMEOUT, headers: { "User-Agent": UA } }
-    );
-    return parseYahooCandles(res.data);
-  } catch {
-    return [];
-  }
+async function yahooChart(symbol: string, interval: string, range: string): Promise<any> {
+  const res = await axios.get(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`,
+    { timeout: TIMEOUT, headers: HEADERS }
+  );
+  return res.data;
+}
+
+export async function fetchGoldKlines(interval: string, range: string): Promise<Candle[]> {
+  const data = await yahooChart("GC=F", interval, range);
+  return parseYahooCandles(data);
 }
 
 export async function fetchGoldTicker() {
-  try {
-    const res = await axios.get(
-      `https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?interval=1d&range=5d`,
-      { timeout: TIMEOUT, headers: { "User-Agent": UA } }
-    );
-    const result = res.data?.chart?.result?.[0];
-    const meta = result?.meta;
-    if (!meta) return null;
-    return {
-      last: meta.regularMarketPrice,
-      high24h: meta.regularMarketDayHigh ?? meta.regularMarketPrice * 1.005,
-      low24h: meta.regularMarketDayLow ?? meta.regularMarketPrice * 0.995,
-      vol24h: meta.regularMarketVolume ?? 0,
-    };
-  } catch {
-    return null;
-  }
+  const data = await yahooChart("GC=F", "1d", "5d");
+  const meta = data?.chart?.result?.[0]?.meta;
+  if (!meta) return null;
+  return {
+    last: meta.regularMarketPrice,
+    high24h: meta.regularMarketDayHigh ?? meta.regularMarketPrice * 1.005,
+    low24h: meta.regularMarketDayLow ?? meta.regularMarketPrice * 0.995,
+    vol24h: meta.regularMarketVolume ?? 0,
+  };
 }
 
-// ─── CoinGlass: OI / Funding / Liquidation ──────────────────────────────────
-
-const CG_BASE = "https://open-api-v3.coinglass.com";
+// ─── CoinGlass: OI / Liquidation / L/S ──────────────────────────────────────
 
 async function coinglassGet(path: string) {
   const key = process.env.COINGLASS_API_KEY;
   if (!key) return null;
-  const res = await axios.get(`${CG_BASE}${path}`, {
+  const res = await axios.get(`https://open-api-v3.coinglass.com${path}`, {
     timeout: TIMEOUT,
-    headers: { "coinglassSecret": key, "User-Agent": UA },
+    headers: { ...HEADERS, "coinglassSecret": key },
   });
-  if (res.data?.code !== "0" && res.data?.success !== true) return null;
-  return res.data?.data ?? null;
+  if (!res.data?.data) return null;
+  return res.data.data;
 }
 
 export async function fetchCoinglassOI(asset: Asset) {
   if (asset === "GOLD") return null;
-  return coinglassGet(
-    `/api/futures/openInterest/chart?symbol=${asset}&interval=0&type=1`
-  );
+  return coinglassGet(`/api/futures/openInterest/chart?symbol=${asset}&interval=0&type=1`);
 }
 
 export async function fetchCoinglassLiquidation(asset: Asset) {
   if (asset === "GOLD") return null;
-  return coinglassGet(
-    `/api/futures/liquidation/detail/chart?symbol=${asset}&type=1`
-  );
+  return coinglassGet(`/api/futures/liquidation/detail/chart?symbol=${asset}&type=1`);
 }
 
 export async function fetchCoinglassLSRatio(asset: Asset) {
   if (asset === "GOLD") return null;
-  return coinglassGet(
-    `/api/futures/globalLongShortAccountRatio/history?symbol=${asset}&interval=1`
-  );
+  return coinglassGet(`/api/futures/globalLongShortAccountRatio/history?symbol=${asset}&interval=1`);
 }
 
 // ─── News: RSS feeds ─────────────────────────────────────────────────────────
@@ -211,132 +193,104 @@ interface RSSItem {
 
 function extractRSSItems(xml: string, source: string): RSSItem[] {
   const items: RSSItem[] = [];
-  const itemBlocks = xml.split("<item>").slice(1);
-  for (const block of itemBlocks.slice(0, 15)) {
-    const title = block.match(/<title><!\[CDATA\[(.*?)\]\]>/)?.[1] ??
-      block.match(/<title>(.*?)<\/title>/)?.[1] ?? "";
+  const blocks = xml.split(/<item[\s>]/i).slice(1);
+  for (const block of blocks.slice(0, 12)) {
+    const cdataMatch = block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/);
+    const plainMatch = block.match(/<title>([\s\S]*?)<\/title>/);
+    const title = cdataMatch?.[1] ?? plainMatch?.[1] ?? "";
     const pubDate = block.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
-    if (title) items.push({ title: decodeEntities(title.trim()), source, pubDate });
+    if (title.trim())
+      items.push({ title: decodeXML(title.trim()), source, pubDate });
   }
   return items;
 }
 
-function decodeEntities(s: string): string {
+function decodeXML(s: string): string {
   return s
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&#\d+;/g, "");
 }
 
 const RSS_FEEDS = [
   { url: "https://feeds.bbci.co.uk/news/business/rss.xml", name: "BBC Business" },
-  { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", name: "CNBC World" },
-  { url: "https://www.coindesk.com/arc/outboundfeeds/rss/", name: "CoinDesk" },
-  { url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", name: "NYT Business" },
   { url: "https://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World" },
+  { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", name: "CNBC World" },
+  { url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", name: "NYT Business" },
+  { url: "https://www.coindesk.com/arc/outboundfeeds/rss/", name: "CoinDesk" },
 ];
 
 export async function fetchNewsHeadlines(): Promise<RSSItem[]> {
   const all: RSSItem[] = [];
-
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(async (feed) => {
-      const res = await axios.get(feed.url, {
+    RSS_FEEDS.map(async (f) => {
+      const res = await axios.get(f.url, {
         timeout: 8000,
-        headers: { "User-Agent": UA },
+        headers: { "User-Agent": HEADERS["User-Agent"] },
+        maxRedirects: 5,
         responseType: "text",
       });
-      return extractRSSItems(res.data, feed.name);
+      return extractRSSItems(res.data, f.name);
     })
   );
-
   for (const r of results) {
     if (r.status === "fulfilled") all.push(...r.value);
   }
-
   return all;
 }
 
 // ─── Master fetch orchestrator ───────────────────────────────────────────────
 
-export interface FetchResult {
-  ticker: any;
-  klines4h: Candle[];
-  klines15m: Candle[];
-  klinesDaily: Candle[];
-  funding: any;
-  gecko: any;
-  coinglassOI: any;
-  coinglassLiq: any;
-  coinglassLS: any;
-  newsHeadlines: RSSItem[];
-  sources: SourceStatus[];
-}
-
 export async function fetchAll(asset: Asset): Promise<FetchResult> {
   const sources: SourceStatus[] = [];
   const isCrypto = asset === "BTC" || asset === "ETH";
-  const isGold = asset === "GOLD";
 
-  // Parallel fetch everything
-  const [
-    tickerR, k4hR, k15mR, kDayR, fundingR, geckoR,
-    cgOIR, cgLiqR, cgLSR, newsR, gateR
-  ] = await Promise.allSettled([
-    isCrypto ? fetchOKXTicker(asset) : fetchGoldTicker(),
-    isCrypto ? fetchOKXKlines(asset, "4H", 100) : fetchGoldKlines("1h", "20d"),
-    isCrypto ? fetchOKXKlines(asset, "15m", 100) : fetchGoldKlines("15m", "5d"),
-    isCrypto ? fetchOKXKlines(asset, "1D", 100) : fetchGoldKlines("1d", "6mo"),
-    isCrypto ? fetchOKXFunding(asset) : Promise.resolve(null),
-    fetchGeckoMarket(asset),
-    fetchCoinglassOI(asset),
-    fetchCoinglassLiquidation(asset),
-    fetchCoinglassLSRatio(asset),
-    fetchNewsHeadlines(),
-    isCrypto ? fetchGateTicker(asset) : Promise.resolve(null),
-  ]);
+  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, cgOIR, cgLiqR, cgLSR, newsR] =
+    await Promise.allSettled([
+      isCrypto ? fetchGateFuturesTicker(asset) : fetchGoldTicker(),
+      isCrypto ? fetchGateKlines(asset, "4h", 100) : fetchGoldKlines("1h", "20d"),
+      isCrypto ? fetchGateKlines(asset, "15m", 100) : fetchGoldKlines("15m", "5d"),
+      isCrypto ? fetchGateKlines(asset, "1d", 200) : fetchGoldKlines("1d", "6mo"),
+      isCrypto ? fetchGateFunding(asset) : Promise.resolve(null),
+      fetchGeckoMarket(asset),
+      fetchCoinglassOI(asset),
+      fetchCoinglassLiquidation(asset),
+      fetchCoinglassLSRatio(asset),
+      fetchNewsHeadlines(),
+    ]);
 
-  // Build source status
-  const ok = (r: PromiseSettledResult<any>, name: string) => {
+  function pick<T>(r: PromiseSettledResult<T>, name: string, fallback: T): T {
     const val = r.status === "fulfilled" ? r.value : null;
-    const hasData = val !== null && val !== undefined && (Array.isArray(val) ? val.length > 0 : true);
+    const hasData = val !== null && val !== undefined &&
+      (Array.isArray(val) ? (val as any[]).length > 0 : true);
     sources.push({
       name,
       status: hasData ? "ok" : "failed",
-      detail: hasData ? "Veri alındı" : r.status === "rejected" ? (r.reason?.message ?? "Hata") : "Veri yok",
+      detail: hasData
+        ? Array.isArray(val)
+          ? `${(val as any[]).length} kayıt`
+          : "Veri alındı"
+        : r.status === "rejected"
+          ? String((r as PromiseRejectedResult).reason?.message ?? "Hata").slice(0, 80)
+          : "Veri yok",
     });
-    return hasData ? val : (Array.isArray(val) ? [] : null);
-  };
-
-  const ticker = ok(tickerR, isGold ? "Yahoo Finance (Gold)" : `OKX ${asset} Ticker`);
-  const klines4h = ok(k4hR, isGold ? "Yahoo Finance 4H" : `OKX ${asset} 4H`) ?? [];
-  const klines15m = ok(k15mR, isGold ? "Yahoo Finance 15M" : `OKX ${asset} 15M`) ?? [];
-  const klinesDaily = ok(kDayR, isGold ? "Yahoo Finance Daily" : `OKX ${asset} Daily`) ?? [];
-  const funding = ok(fundingR, isCrypto ? `OKX ${asset} Funding` : "Funding (N/A Gold)");
-  const gecko = ok(geckoR, `CoinGecko ${asset}`);
-  const coinglassOI = ok(cgOIR, "CoinGlass OI");
-  const coinglassLiq = ok(cgLiqR, "CoinGlass Liquidation");
-  const coinglassLS = ok(cgLSR, "CoinGlass Long/Short");
-  const newsHeadlines = ok(newsR, "News RSS Feeds") ?? [];
-
-  // Gate.io as backup ticker
-  if (!ticker && gateR.status === "fulfilled" && gateR.value) {
-    sources.push({ name: `Gate.io ${asset} (backup)`, status: "ok", detail: "Backup ticker" });
+    return (hasData ? val : fallback) as T;
   }
 
   return {
-    ticker,
-    klines4h: Array.isArray(klines4h) ? klines4h : [],
-    klines15m: Array.isArray(klines15m) ? klines15m : [],
-    klinesDaily: Array.isArray(klinesDaily) ? klinesDaily : [],
-    funding,
-    gecko,
-    coinglassOI,
-    coinglassLiq,
-    coinglassLS,
-    newsHeadlines: Array.isArray(newsHeadlines) ? newsHeadlines : [],
+    ticker: pick(tickerR, isCrypto ? `Gate.io ${asset} Ticker` : "Yahoo Finance Gold", null),
+    klines4h: pick(k4hR, isCrypto ? `Gate.io ${asset} 4H` : "Yahoo Finance Gold 1H", [] as Candle[]),
+    klines15m: pick(k15mR, isCrypto ? `Gate.io ${asset} 15M` : "Yahoo Finance Gold 15M", [] as Candle[]),
+    klinesDaily: pick(kDayR, isCrypto ? `Gate.io ${asset} Daily` : "Yahoo Finance Gold Daily", [] as Candle[]),
+    funding: pick(fundingR, isCrypto ? `Gate.io ${asset} Funding` : "Funding (N/A)", null),
+    gecko: pick(geckoR, `CoinGecko ${asset}`, null),
+    coinglassOI: pick(cgOIR, "CoinGlass OI", null),
+    coinglassLiq: pick(cgLiqR, "CoinGlass Liquidation", null),
+    coinglassLS: pick(cgLSR, "CoinGlass L/S Ratio", null),
+    newsHeadlines: pick(newsR, "News RSS Feeds", [] as RSSItem[]),
     sources,
   };
 }

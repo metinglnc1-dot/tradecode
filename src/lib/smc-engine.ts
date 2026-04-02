@@ -304,7 +304,9 @@ export function analyzeOrderFlow(candles4h: Candle[], candles15m: Candle[], curr
 export function analyzeFunding(funding: any): FundingResult {
   if (!funding) return { rate: null, ratePct: "N/A", annualized: "N/A", interpretation: "Veri yetersiz / kaynak erişilemedi", bias: "neutral" };
 
-  const rate = parseFloat(funding.fundingRate);
+  // Handle Gate.io format {fundingRate} or OKX format {fundingRate} or simple string
+  const raw = funding.fundingRate ?? funding.funding_rate ?? funding.rate ?? "0";
+  const rate = parseFloat(String(raw));
   const ratePct = (rate * 100).toFixed(4);
   const annualized = (rate * 3 * 365 * 100).toFixed(2);
 

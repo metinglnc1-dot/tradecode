@@ -121,7 +121,7 @@ export interface NewsItem {
   title: string;
   source: string;
   timestamp: string;
-  category: "war" | "inflation" | "rates" | "crypto" | "geopolitics" | "macro" | "gold" | "other";
+  category: "war" | "inflation" | "rates" | "crypto" | "macro" | "gold" | "other";
   impact: "bullish" | "bearish" | "neutral";
   relevance: "high" | "medium" | "low";
 }
@@ -175,6 +175,22 @@ export interface SourceStatus {
   name: string;
   status: "ok" | "partial" | "failed";
   detail: string;
+}
+
+// ─── Fetch Result (shared between server and browser fetchers) ───────────────
+
+export interface FetchResult {
+  ticker: any;
+  klines4h: Candle[];
+  klines15m: Candle[];
+  klinesDaily: Candle[];
+  funding: any;
+  gecko: any;
+  coinglassOI: any;
+  coinglassLiq: any;
+  coinglassLS: any;
+  newsHeadlines: { title: string; source: string; pubDate: string }[];
+  sources: SourceStatus[];
 }
 
 // ─── Full Report ─────────────────────────────────────────────────────────────

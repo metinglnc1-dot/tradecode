@@ -1,8 +1,8 @@
 import type {
   Asset, AnalysisReport, StructureResult, FVG, Zones,
   TradeSetup, LongTermPlan, PriceMapLevel, FundingResult, MacroResult, AMDResult,
+  FetchResult,
 } from "./types";
-import type { FetchResult } from "./fetchers";
 import {
   findSwings, analyzeStructure, findFVGs, findZones,
   analyzeAMD, analyzeOrderFlow, analyzeFunding,
@@ -23,14 +23,15 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
     currentPrice = klines4h[klines4h.length - 1].close;
   }
 
-  // 24h data
+  // 24h data — handles Gate.io futures (high_24h/low_24h/volume_24h) and Yahoo Finance gold format
   let high24h = 0, low24h = 0, vol24h = "?";
   if (ticker) {
-    high24h = parseFloat(ticker.high24h ?? ticker.high24h ?? "0");
-    low24h = parseFloat(ticker.low24h ?? ticker.low24h ?? "0");
-    vol24h = ticker.volCcy24h
-      ? Number(parseFloat(ticker.volCcy24h)).toLocaleString("en-US", { maximumFractionDigits: 0 })
-      : ticker.vol24h ?? "?";
+    high24h = parseFloat(ticker.high_24h ?? ticker.high24h ?? "0");
+    low24h = parseFloat(ticker.low_24h ?? ticker.low24h ?? "0");
+    const rawVol = ticker.volume_24h ?? ticker.volCcy24h ?? ticker.vol24h;
+    vol24h = rawVol
+      ? Number(parseFloat(String(rawVol))).toLocaleString("en-US", { maximumFractionDigits: 0 })
+      : "?";
   }
 
   // Change percentages from CoinGecko

@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import type { AnalysisReport } from "@/lib/types";
+import { fetchAllBrowser } from "@/lib/browser-fetchers";
+import { buildReport } from "@/lib/report";
 
 type Asset = "BTC" | "ETH" | "GOLD";
 
@@ -17,12 +19,13 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/analyze?asset=${asset}`);
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      setReport(json.data);
+      // Fetch data from external APIs directly in the browser
+      const data = await fetchAllBrowser(asset);
+      // Run the SMC analysis engine
+      const result = buildReport(asset, data);
+      setReport(result);
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message ?? "Analiz sırasında hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -30,12 +33,14 @@ export default function Home() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-6">
-      {/* Header */}
-      <header className="mb-6">
+      <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">
           Trade<span className="text-blue-400">Code</span>
           <span className="text-sm font-normal text-slate-400 ml-2">SMC Analyzer</span>
         </h1>
+        <span className="text-xs text-slate-600 bg-slate-800 px-2 py-1 rounded">
+          Canlı veri · Tahmin yok
+        </span>
       </header>
 
       {/* Controls */}
@@ -50,7 +55,7 @@ export default function Home() {
                 : "bg-slate-800 text-slate-300 hover:bg-slate-700"
             }`}
           >
-            {a === "BTC" ? "Bitcoin" : a === "ETH" ? "Ethereum" : "Altın (XAU)"}
+            {a === "BTC" ? "₿ Bitcoin" : a === "ETH" ? "Ξ Ethereum" : "◈ Altın (XAU)"}
           </button>
         ))}
 
@@ -61,8 +66,11 @@ export default function Home() {
         >
           {loading ? (
             <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-              Analiz ediliyor...
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Veri çekiliyor...
             </>
           ) : (
             "Analiz Et"
@@ -70,300 +78,462 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
-        <div className="bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded-lg mb-6">
+        <div className="bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded-lg mb-6 text-sm">
           {error}
         </div>
       )}
 
-      {/* Loading */}
       {loading && <LoadingSkeleton />}
-
-      {/* Report */}
       {report && !loading && <ReportView report={report} />}
 
-      {/* Empty state */}
       {!report && !loading && !error && (
         <div className="text-center py-24 text-slate-500">
-          <div className="text-5xl mb-4">📊</div>
-          <p className="text-lg">Varlık seçin ve <span className="text-emerald-400 font-semibold">Analiz Et</span> butonuna basın</p>
-          <p className="text-sm mt-2 text-slate-600">Canlı veri API&apos;lerden çekilecek, tahmin uydurulmayacak</p>
+          <div className="text-6xl mb-4">📊</div>
+          <p className="text-lg text-slate-400">
+            Varlık seçin ve{" "}
+            <span className="text-emerald-400 font-semibold">Analiz Et</span>
+          </p>
+          <p className="text-sm mt-2">
+            Canlı veri API&apos;lerden çekilecek · SMC analizi browser&apos;ınızda çalışır · Tahmin uydurulmaz
+          </p>
         </div>
       )}
     </main>
   );
 }
 
-// ─── Loading Skeleton ────────────────────────────────────────────────────────
+// ─── Loading ──────────────────────────────────────────────────────────────────
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-4">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-slate-900 rounded-xl p-6 border border-slate-800">
-          <div className="shimmer h-5 w-48 rounded mb-4" />
-          <div className="space-y-2">
-            <div className="shimmer h-4 w-full rounded" />
-            <div className="shimmer h-4 w-3/4 rounded" />
-            <div className="shimmer h-4 w-5/6 rounded" />
-          </div>
-        </div>
+    <div className="space-y-4 animate-pulse">
+      {[200, 300, 250, 180].map((h, i) => (
+        <div key={i} className="bg-slate-900 rounded-xl border border-slate-800" style={{ height: h }} />
       ))}
     </div>
   );
 }
 
-// ─── Report View ─────────────────────────────────────────────────────────────
+// ─── Report ───────────────────────────────────────────────────────────────────
 
 function ReportView({ report: r }: { report: AnalysisReport }) {
-  const biasColor = (b: string) =>
+  const [newsOpen, setNewsOpen] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+
+  const bc = (b: string) =>
     b === "bullish" ? "text-emerald-400" : b === "bearish" ? "text-rose-400" : "text-amber-400";
-  const biasLabel = (b: string) =>
-    b === "bullish" ? "BULLISH" : b === "bearish" ? "BEARISH" : "NEUTRAL";
-  const decisionColor =
-    r.decision === "LONG" ? "bg-emerald-600" : r.decision === "SHORT" ? "bg-rose-600" : "bg-amber-600";
+  const bl = (b: string) =>
+    b === "bullish" ? "BULLISH ↑" : b === "bearish" ? "BEARISH ↓" : "NEUTRAL →";
+  const decBg =
+    r.decision === "LONG"
+      ? "from-emerald-900/80 to-emerald-950 border-emerald-700"
+      : r.decision === "SHORT"
+        ? "from-rose-900/80 to-rose-950 border-rose-700"
+        : "from-amber-900/80 to-amber-950 border-amber-700";
+  const decText =
+    r.decision === "LONG" ? "text-emerald-300" : r.decision === "SHORT" ? "text-rose-300" : "text-amber-300";
+
+  const fmt = (n: number) =>
+    n > 10000 ? n.toLocaleString("en-US", { maximumFractionDigits: 0 }) :
+    n > 100 ? n.toFixed(1) : n.toFixed(2);
+
+  const pctColor = (s: string) => parseFloat(s) >= 0 ? "text-emerald-400" : "text-rose-400";
 
   return (
     <div className="space-y-4">
-      {/* Decision Banner */}
-      <div className={`${decisionColor} rounded-xl p-5 flex flex-wrap items-center justify-between gap-4`}>
-        <div>
-          <div className="text-xs font-medium text-white/60 uppercase">Karar</div>
-          <div className="text-3xl font-black text-white">{r.decision}</div>
-        </div>
-        <div className="text-right">
-          <div className="text-xs font-medium text-white/60">Güven Skoru</div>
-          <div className="text-3xl font-black text-white">{r.confidence}/10</div>
-        </div>
-        <div className="w-full">
-          <div className="text-sm text-white/90"><strong>En temiz setup:</strong> {r.bestSetup}</div>
-          <div className="text-sm text-white/70 mt-1"><strong>Risk:</strong> {r.riskNote}</div>
-        </div>
-      </div>
-
-      {/* Price Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      {/* ── Decision Banner ─────────────────────────── */}
+      <div className={`bg-gradient-to-br ${decBg} border rounded-xl p-5`}>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
           <div>
-            <div className="text-xs text-slate-400">{r.asset}/USDT{r.asset === "GOLD" ? " (XAU)" : ""}</div>
-            <div className="text-3xl font-bold text-white">
-              {r.asset === "GOLD" ? "$" : ""}{r.currentPrice.toLocaleString("en-US", { maximumFractionDigits: r.currentPrice > 1000 ? 0 : 2 })}
+            <div className="text-xs text-white/50 uppercase tracking-widest mb-1">Karar</div>
+            <div className={`text-4xl font-black ${decText}`}>{r.decision}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-white/50 uppercase tracking-widest mb-1">Güven Skoru</div>
+            <div className={`text-4xl font-black ${decText}`}>{r.confidence}/10</div>
+          </div>
+          <div className="w-full space-y-1">
+            <div className="text-sm text-white/80">
+              <span className="text-white/40">En temiz setup: </span>{r.bestSetup}
+            </div>
+            <div className="text-sm text-white/60">
+              <span className="text-white/40">Risk: </span>{r.riskNote}
             </div>
           </div>
-          <div className="flex gap-4 text-sm">
-            <Stat label="24h" value={`${r.change24h}%`} color={parseFloat(r.change24h) >= 0 ? "text-emerald-400" : "text-rose-400"} />
-            <Stat label="7d" value={`${r.change7d}%`} color={parseFloat(r.change7d) >= 0 ? "text-emerald-400" : "text-rose-400"} />
-            <Stat label="30d" value={`${r.change30d}%`} color={parseFloat(r.change30d) >= 0 ? "text-emerald-400" : "text-rose-400"} />
-            <Stat label="24h High" value={r.high24h.toLocaleString()} />
-            <Stat label="24h Low" value={r.low24h.toLocaleString()} />
-            <Stat label="24h Vol" value={r.vol24h} />
-          </div>
         </div>
-        <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          Son güncelleme: {new Date(r.timestamp).toLocaleString("tr-TR")}
+        {/* Confidence bar */}
+        <div className="h-1.5 bg-black/30 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${r.decision === "LONG" ? "bg-emerald-400" : r.decision === "SHORT" ? "bg-rose-400" : "bg-amber-400"}`}
+            style={{ width: `${r.confidence * 10}%` }}
+          />
         </div>
       </div>
 
-      {/* 1. Genel Yön */}
-      <Card title="1. Genel Yön">
+      {/* ── Price Header ────────────────────────────── */}
+      <Card>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-xs text-slate-500 mb-1">
+              {r.asset}/USD{r.asset !== "GOLD" ? "T" : ""} · Futures
+            </div>
+            <div className="text-3xl font-bold text-white tabular-nums">
+              ${fmt(r.currentPrice)}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <Stat label="24h" value={`${r.change24h}%`} color={pctColor(r.change24h)} />
+            <Stat label="7d" value={`${r.change7d}%`} color={pctColor(r.change7d)} />
+            <Stat label="30d" value={`${r.change30d}%`} color={pctColor(r.change30d)} />
+            {r.high24h > 0 && <Stat label="24h High" value={`$${fmt(r.high24h)}`} />}
+            {r.low24h > 0 && <Stat label="24h Low" value={`$${fmt(r.low24h)}`} />}
+            {r.vol24h !== "?" && <Stat label="Vol 24h" value={r.vol24h} />}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-600">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot inline-block" />
+          {new Date(r.timestamp).toLocaleString("tr-TR")}
+        </div>
+      </Card>
+
+      {/* ── 1. Genel Yön ────────────────────────────── */}
+      <Section num="1" title="Genel Yön">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <BiasBox label="4H Bias" bias={r.struct4h.bias} biasColor={biasColor} biasLabel={biasLabel} />
-          <BiasBox label="15M Bias" bias={r.struct15m.bias} biasColor={biasColor} biasLabel={biasLabel} />
-          {r.structDaily && <BiasBox label="Daily Bias" bias={r.structDaily.bias} biasColor={biasColor} biasLabel={biasLabel} />}
+          <BiasBox label="4H Bias" bias={r.struct4h.bias} bc={bc} bl={bl} />
+          <BiasBox label="15M Bias" bias={r.struct15m.bias} bc={bc} bl={bl} />
+          {r.structDaily && <BiasBox label="Daily Bias" bias={r.structDaily.bias} bc={bc} bl={bl} />}
         </div>
-      </Card>
+        {r.struct4h.bias !== r.struct15m.bias && (
+          <div className="mt-3 text-xs text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded px-3 py-2">
+            ⚠ 4H–15M çatışması — güven skoru düşük, confirmasyonsuz işlem açma
+          </div>
+        )}
+      </Section>
 
-      {/* 2. Kısa Analiz */}
-      <Card title="2. Kısa Analiz">
-        <div className="space-y-3 text-sm">
-          <Row label="4H Structure" value={r.struct4h.label} />
-          <Row label="15M Structure" value={r.struct15m.label} />
-          {r.struct4h.bos && <Row label="4H BOS" value={`${r.struct4h.bos.type} — seviye: ${r.struct4h.bos.level}`} />}
-          {r.struct4h.choch && <Row label="4H CHoCH" value={`Seviye: ${r.struct4h.choch.level} — ${r.struct4h.choch.type}`} />}
-          {r.struct15m.bos && <Row label="15M BOS" value={`${r.struct15m.bos.type} — seviye: ${r.struct15m.bos.level}`} />}
-          <div className="border-t border-slate-700 pt-2" />
-          <Row label="AMD Model" value={r.amd.description} />
-          <Row label="Order Flow" value={`${r.orderFlow.momentum} | Vol: ${r.orderFlow.volTrend} | Pozisyon: ${r.orderFlow.priceInRange}`} />
-          {r.orderFlow.displacement && (
-            <Row label="Displacement" value={`${r.orderFlow.displacement.direction} — body: ${r.orderFlow.displacement.body} (avg: ${r.orderFlow.displacement.avgBody})`} />
-          )}
-          <div className="border-t border-slate-700 pt-2" />
-          <Row label="Funding Rate" value={`${r.funding.ratePct} (${r.funding.annualized}) — ${r.funding.interpretation}`} />
-          <div className="border-t border-slate-700 pt-2" />
-          <div className="font-medium text-slate-300">Supply Zones:</div>
-          {r.zones.supply.length ? r.zones.supply.map((z, i) => (
-            <Row key={`s${i}`} label={`Supply ${i + 1}`} value={`${z.bottom.toFixed(0)}–${z.top.toFixed(0)} (${z.strength})`} />
-          )) : <div className="text-slate-500 text-xs">Tespit edilemedi</div>}
-          <div className="font-medium text-slate-300">Demand Zones:</div>
-          {r.zones.demand.length ? r.zones.demand.map((z, i) => (
-            <Row key={`d${i}`} label={`Demand ${i + 1}`} value={`${z.bottom.toFixed(0)}–${z.top.toFixed(0)} (${z.strength})`} />
-          )) : <div className="text-slate-500 text-xs">Tespit edilemedi</div>}
-          <div className="border-t border-slate-700 pt-2" />
-          <div className="font-medium text-slate-300">FVG (4H):</div>
-          {r.fvgs4h.length ? r.fvgs4h.map((f, i) => (
-            <Row key={`f4${i}`} label={`${f.type === "bullish" ? "Bull" : "Bear"} FVG`} value={`${f.bottom.toFixed(0)}–${f.top.toFixed(0)} [${f.status}]`} />
-          )) : <div className="text-slate-500 text-xs">4H FVG bulunamadı</div>}
-          <div className="font-medium text-slate-300">FVG (15M):</div>
-          {r.fvgs15m.length ? r.fvgs15m.slice(0, 3).map((f, i) => (
-            <Row key={`f15${i}`} label={`${f.type === "bullish" ? "Bull" : "Bear"} FVG`} value={`${f.bottom.toFixed(0)}–${f.top.toFixed(0)} [${f.status}]`} />
-          )) : <div className="text-slate-500 text-xs">15M FVG bulunamadı</div>}
+      {/* ── 2. Kısa Analiz ──────────────────────────── */}
+      <Section num="2" title="Kısa Analiz">
+        <div className="space-y-4">
+          {/* Structure */}
+          <Group title="Market Structure">
+            <Row label="4H Yapı" value={r.struct4h.label} />
+            <Row label="15M Yapı" value={r.struct15m.label} />
+            {r.struct4h.bos && <Row label="4H BOS" value={`${r.struct4h.bos.type.toUpperCase()} — $${fmt(r.struct4h.bos.level)}`} highlight={r.struct4h.bos.type === "bullish" ? "green" : "red"} />}
+            {r.struct4h.choch && <Row label="4H CHoCH" value={`Seviye $${fmt(r.struct4h.choch.level)} — ${r.struct4h.choch.type}`} highlight="yellow" />}
+            {r.struct15m.bos && <Row label="15M BOS" value={`${r.struct15m.bos.type.toUpperCase()} — $${fmt(r.struct15m.bos.level)}`} highlight={r.struct15m.bos.type === "bullish" ? "green" : "red"} />}
+          </Group>
+
+          {/* Volume Profile */}
+          <Group title="Anchored Volume Profile">
+            <div className="text-slate-400 text-sm italic">
+              Gerçek AVWAP için volume profile aracı gerekli. Hacim verisi sınırlı — kıyaslama için swing yapısı kullanıldı.
+            </div>
+          </Group>
+
+          {/* AMD */}
+          <Group title="AMD Model">
+            <Row label="Faz" value={r.amd.phase.toUpperCase()} highlight={r.amd.phase === "distribution" ? "green" : r.amd.phase === "accumulation" ? "yellow" : "none"} />
+            <Row label="Açıklama" value={r.amd.description} />
+            {r.amd.sweepLevel && <Row label="Sweep Seviyesi" value={`$${fmt(r.amd.sweepLevel)}`} highlight="yellow" />}
+          </Group>
+
+          {/* Order Flow */}
+          <Group title="Order Flow / Momentum">
+            <Row label="Momentum" value={r.orderFlow.momentum} />
+            <Row label="15M (Bull/Bear)" value={`${r.orderFlow.bullish15m} bullish / ${r.orderFlow.bearish15m} bearish (son 12 bar)`} />
+            <Row label="Hacim Trendi" value={r.orderFlow.volTrend} />
+            <Row label="Range Pozisyon" value={r.orderFlow.priceInRange} />
+            {r.orderFlow.displacement && (
+              <Row label="Displacement" value={`${r.orderFlow.displacement.direction} — body: $${r.orderFlow.displacement.body} (ort: $${r.orderFlow.displacement.avgBody})`} highlight={r.orderFlow.displacement.direction === "bullish" ? "green" : "red"} />
+            )}
+          </Group>
+
+          {/* Zones */}
+          <Group title="Supply / Demand Zone'ları">
+            {r.zones.supply.length === 0 && r.zones.demand.length === 0 ? (
+              <Unavailable />
+            ) : (
+              <>
+                {r.zones.supply.map((z, i) => (
+                  <Row key={`s${i}`} label={`Supply ${i + 1} (${z.strength})`} value={`$${fmt(z.bottom)} — $${fmt(z.top)}`} highlight="red" />
+                ))}
+                {r.zones.demand.map((z, i) => (
+                  <Row key={`d${i}`} label={`Demand ${i + 1} (${z.strength})`} value={`$${fmt(z.bottom)} — $${fmt(z.top)}`} highlight="green" />
+                ))}
+              </>
+            )}
+          </Group>
+
+          {/* FVGs */}
+          <Group title="FVG / iFVG Bölgeleri">
+            {r.fvgs4h.length === 0 && r.fvgs15m.length === 0 ? (
+              <Unavailable />
+            ) : (
+              <>
+                {r.fvgs4h.map((f, i) => (
+                  <Row key={`f4${i}`} label={`4H ${f.type === "bullish" ? "Bullish" : "Bearish"} FVG [${f.status}]`} value={`$${fmt(f.bottom)} — $${fmt(f.top)}`} highlight={f.type === "bullish" ? "green" : "red"} />
+                ))}
+                {r.fvgs15m.slice(0, 3).map((f, i) => (
+                  <Row key={`f15${i}`} label={`15M ${f.type === "bullish" ? "Bullish" : "Bearish"} FVG [${f.status}]`} value={`$${fmt(f.bottom)} — $${fmt(f.top)}`} highlight={f.type === "bullish" ? "green" : "red"} />
+                ))}
+              </>
+            )}
+          </Group>
+
+          {/* Funding */}
+          <Group title="OI / Funding / Positioning">
+            {r.funding.rate === null ? (
+              <>
+                <Row label="OI" value="Veri yetersiz / kaynak erişilemedi" />
+                <Row label="Funding" value="Veri yetersiz / kaynak erişilemedi" />
+                <Row label="L/S Oranı" value="Veri yetersiz / kaynak erişilemedi" />
+              </>
+            ) : (
+              <>
+                <Row label="Funding Rate" value={`${r.funding.ratePct} (${r.funding.annualized})`} />
+                <Row label="Yorum" value={r.funding.interpretation} />
+              </>
+            )}
+            <Row label="CoinGlass OI" value="Veri yetersiz / kaynak erişilemedi (API key gerekli)" />
+            <Row label="CoinGlass L/S" value="Veri yetersiz / kaynak erişilemedi (API key gerekli)" />
+          </Group>
         </div>
-      </Card>
+      </Section>
 
-      {/* Liquidation */}
-      <Card title="Likidasyon Haritası">
+      {/* ── Likidasyonlar ────────────────────────────── */}
+      <Section num="" title="Likidasyon Haritası">
         {r.liquidation.pools.length > 0 ? (
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2">
             {r.liquidation.pools.map((p, i) => (
-              <div key={i} className={`flex justify-between p-2 rounded ${p.side === "long" ? "bg-rose-900/20 border border-rose-900/30" : "bg-emerald-900/20 border border-emerald-900/30"}`}>
-                <span className={p.side === "long" ? "text-rose-400" : "text-emerald-400"}>
-                  {p.side === "long" ? "LONG Liq ▼" : "SHORT Liq ▲"} ({p.distance})
+              <div key={i} className={`flex justify-between items-center px-3 py-2 rounded-lg border text-sm ${
+                p.side === "short"
+                  ? "bg-emerald-900/15 border-emerald-800/30 text-emerald-300"
+                  : "bg-rose-900/15 border-rose-800/30 text-rose-300"
+              }`}>
+                <span className="font-medium">
+                  {p.side === "short" ? "↑ SHORT Liq" : "↓ LONG Liq"} ({p.distance})
                 </span>
-                <span className="text-slate-300">{p.priceRange}</span>
+                <span className="font-mono text-slate-200">${p.priceRange}</span>
+                <span className="text-xs text-slate-500 hidden sm:block">{p.description}</span>
               </div>
             ))}
-            <Row label="Önce hedeflenecek" value={r.liquidation.likelyFirstTarget} />
-            <div className="text-xs text-slate-500 mt-1">Kaynak: {r.liquidation.source}</div>
+            <Row label="Önce hedef" value={r.liquidation.likelyFirstTarget} highlight="yellow" />
+            <p className="text-xs text-slate-600 mt-1">Kaynak: {r.liquidation.source}</p>
           </div>
         ) : (
-          <div className="text-sm text-amber-400">Veri yetersiz / kaynak erişilemedi</div>
+          <div className="text-sm text-amber-400">Veri yetersiz / kaynak erişilemedi (CoinGlass API key gerekli)</div>
         )}
-      </Card>
+      </Section>
 
-      {/* Macro / News */}
-      <Card title="Global Haber / Makro / Savaş Etkisi">
+      {/* ── Makro / Haber ───────────────────────────── */}
+      <Section num="" title="Global Haber / Makro / Savaş Etkisi">
         {r.macro.available ? (
-          <div className="space-y-2 text-sm">
-            <Row label="Savaş Riski" value={r.macro.warRisk} />
+          <div className="space-y-2">
+            <Row label="Savaş / Jeopolitik Risk" value={r.macro.warRisk} />
             <Row label="Enflasyon" value={r.macro.inflationOutlook} />
-            <Row label="Faiz" value={r.macro.ratesOutlook} />
-            <Row label="DXY" value={r.macro.dxyBias} />
-            <Row label="Genel Etki" value={r.macro.overallImpact} />
+            <Row label="Faiz / Merkez Bankası" value={r.macro.ratesOutlook} />
+            <Row label="DXY / Dolar" value={r.macro.dxyBias} />
+            <Row label="Genel Etki" value={r.macro.overallImpact} highlight={
+              r.macro.overallImpact.includes("BULLISH") ? "green" :
+              r.macro.overallImpact.includes("BEARISH") ? "red" : "none"
+            } />
             {r.macro.headlines.length > 0 && (
-              <div className="mt-3 border-t border-slate-700 pt-3">
-                <div className="text-xs text-slate-400 mb-2">Öne çıkan haberler ({r.macro.headlines.length})</div>
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {r.macro.headlines.slice(0, 10).map((h, i) => (
-                    <div key={i} className="flex gap-2 text-xs">
-                      <span className={`shrink-0 w-16 text-right ${h.impact === "bullish" ? "text-emerald-400" : h.impact === "bearish" ? "text-rose-400" : "text-slate-400"}`}>
-                        [{h.category}]
-                      </span>
-                      <span className="text-slate-300 truncate">{h.title}</span>
-                      <span className="text-slate-600 shrink-0">{h.source}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-3">
+                <button
+                  onClick={() => setNewsOpen(!newsOpen)}
+                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+                >
+                  {newsOpen ? "▾" : "▸"} {r.macro.headlines.length} haber göster
+                </button>
+                {newsOpen && (
+                  <div className="mt-2 space-y-1 max-h-56 overflow-y-auto pr-1">
+                    {r.macro.headlines.map((h, i) => (
+                      <div key={i} className="flex gap-2 text-xs">
+                        <span className={`shrink-0 w-[72px] text-right font-mono ${
+                          h.impact === "bullish" ? "text-emerald-400" :
+                          h.impact === "bearish" ? "text-rose-400" : "text-slate-500"
+                        }`}>[{h.category}]</span>
+                        <span className="text-slate-300">{h.title}</span>
+                        <span className="text-slate-600 shrink-0 hidden sm:block">— {h.source}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         ) : (
           <div className="text-sm text-amber-400">Veri yetersiz / kaynak erişilemedi</div>
         )}
-      </Card>
+      </Section>
 
-      {/* 3. En Olası Senaryo */}
-      <Card title="3. En Olası Senaryo">
+      {/* ── 3. En Olası Senaryo ─────────────────────── */}
+      <Section num="3" title="En Olası Senaryo">
         <div className="space-y-2 text-sm">
-          <Row label="AMD Fazı" value={r.amd.description} />
-          <Row label="Önce alınacak likidite" value={r.liquidation.likelyFirstTarget || "Belirsiz"} />
-          {r.zones.supply[0] && <Row label="Yukarı hedef" value={`${r.zones.supply[0].bottom.toFixed(0)}–${r.zones.supply[0].top.toFixed(0)}`} />}
-          {r.zones.demand[0] && <Row label="Aşağı destek" value={`${r.zones.demand[0].bottom.toFixed(0)}–${r.zones.demand[0].top.toFixed(0)}`} />}
+          <Row label="AMD Fazı" value={`${r.amd.phase.toUpperCase()} — ${r.amd.description}`} />
+          <Row label="Önce alınacak likidite" value={r.liquidation.likelyFirstTarget || "Belirsiz — likidasyon verisi yetersiz"} />
+          {r.zones.supply[0] && <Row label="Yukarı hedef (supply)" value={`$${fmt(r.zones.supply[0].bottom)} — $${fmt(r.zones.supply[0].top)}`} highlight="red" />}
+          {r.zones.demand[0] && <Row label="Aşağı destek (demand)" value={`$${fmt(r.zones.demand[0].bottom)} — $${fmt(r.zones.demand[0].top)}`} highlight="green" />}
         </div>
-      </Card>
+      </Section>
 
-      {/* 4 & 5. Trade Setups */}
+      {/* ── 4 & 5. Trade Setups ─────────────────────── */}
       <div className="grid md:grid-cols-2 gap-4">
-        <SetupCard title="4. Long Planı" setup={r.longSetup} type="long" />
-        <SetupCard title="5. Short Planı" setup={r.shortSetup} type="short" />
+        <SetupCard title="4. Long Planı" type="long" setup={r.longSetup} />
+        <SetupCard title="5. Short Planı" type="short" setup={r.shortSetup} />
       </div>
 
-      {/* 6. Uzun Vadeli Plan */}
-      <Card title="6. Uzun Vadeli Plan">
+      {/* ── 6. Uzun Vadeli Plan ─────────────────────── */}
+      <Section num="6" title="Uzun Vadeli Plan">
         <div className="space-y-2 text-sm">
           <Row label="Yön" value={r.longTermPlan.direction} />
-          <Row label="Birikim bölgesi" value={r.longTermPlan.accumulationZone} />
-          <Row label="Geçersizlik" value={r.longTermPlan.invalidation} />
-          <Row label="Hedef 1" value={r.longTermPlan.target1} />
-          <Row label="Hedef 2" value={r.longTermPlan.target2} />
-          <Row label="Güçlendiren" value={r.longTermPlan.strengthenedBy} />
-          <Row label="Zayıflatan" value={r.longTermPlan.weakenedBy} />
+          <Row label="Ana birikim bölgesi" value={r.longTermPlan.accumulationZone} />
+          <Row label="Geçersizlik seviyesi" value={`$${r.longTermPlan.invalidation}`} highlight="red" />
+          <Row label="Hedef 1" value={`$${r.longTermPlan.target1}`} highlight="green" />
+          <Row label="Hedef 2" value={`$${r.longTermPlan.target2}`} highlight="green" />
+          <Row label="Güçlendiren makro" value={r.longTermPlan.strengthenedBy} />
+          <Row label="Zayıflatan makro" value={r.longTermPlan.weakenedBy} />
         </div>
-      </Card>
+      </Section>
 
-      {/* 8. Price Map */}
+      {/* ── 7. Sonuç ────────────────────────────────── */}
+      <Section num="7" title="Sonuç">
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-slate-500 mb-1">Karar</div>
+            <div className={`text-xl font-black ${decText}`}>{r.decision}</div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-slate-500 mb-1">Güven</div>
+            <div className="text-xl font-black text-white">{r.confidence}/10</div>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+            <div className="text-xs text-slate-500 mb-1">Tempo</div>
+            <div className="text-sm font-semibold text-slate-200">
+              {r.struct4h.bias === "bullish" && r.struct15m.bias === "bullish" ? "↑↑ Uyumlu" :
+               r.struct4h.bias === "bearish" && r.struct15m.bias === "bearish" ? "↓↓ Uyumlu" :
+               "⇄ Çatışma"}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── 8. Fiyat Yolu ───────────────────────────── */}
       {r.priceMap.length > 0 && (
-        <Card title="8. Fiyat Yolu Şeması">
-          <div className="price-map text-xs leading-relaxed overflow-x-auto">
+        <Section num="8" title="Fiyat Yolu Şeması">
+          <div className="price-map text-xs leading-6 overflow-x-auto">
             {r.priceMap.map((l, i) => (
               <div key={i} className={
                 l.tag === "CURRENT" ? "text-blue-400 font-bold" :
                 l.tag === "SUPPLY" ? "text-rose-400" :
                 l.tag === "DEMAND" ? "text-emerald-400" :
-                l.tag === "supply" || l.tag === "demand" ? "text-slate-400" :
-                "text-amber-400/70"
-              }>
-                {l.line}
+                l.tag === "supply" || l.tag === "demand" ? "text-slate-500" :
+                "text-amber-400/80"
+              }>{l.line}</div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ── Source Status ────────────────────────────── */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setSourcesOpen(!sourcesOpen)}
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <span>Veri Kaynağı Durumu</span>
+          <span className="flex items-center gap-2 text-xs">
+            <span className="text-emerald-400">{r.sources.filter(s => s.status === "ok").length} ok</span>
+            <span className="text-rose-400">{r.sources.filter(s => s.status === "failed").length} fail</span>
+            {sourcesOpen ? "▾" : "▸"}
+          </span>
+        </button>
+        {sourcesOpen && (
+          <div className="px-5 pb-4 grid gap-1.5">
+            {r.sources.map((s, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  s.status === "ok" ? "bg-emerald-400" :
+                  s.status === "partial" ? "bg-amber-400" : "bg-rose-400"
+                }`} />
+                <span className="text-slate-300 min-w-[160px]">{s.name}</span>
+                <span className="text-slate-600">{s.detail}</span>
               </div>
             ))}
           </div>
-        </Card>
-      )}
-
-      {/* Source Status */}
-      <Card title="Veri Kaynağı Durumu">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {r.sources.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs">
-              <span className={`w-2 h-2 rounded-full ${s.status === "ok" ? "bg-emerald-400" : s.status === "partial" ? "bg-amber-400" : "bg-rose-400"}`} />
-              <span className="text-slate-300">{s.name}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h2 className="text-sm font-bold text-slate-200 mb-3 uppercase tracking-wider">{title}</h2>
-      {children}
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">{children}</div>
+  );
+}
+
+function Section({ num, title, children }: { num: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="px-5 py-3 border-b border-slate-800 flex items-center gap-2">
+        {num && <span className="text-xs text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded font-mono">{num}</span>}
+        <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">{title}</h2>
+      </div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
 
-function Row({ label, value }: { label: string; value: string | number }) {
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-2">
-      <span className="text-slate-500 shrink-0 w-36 text-right">{label}:</span>
-      <span className="text-slate-200">{value}</span>
+    <div>
+      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{title}</div>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  );
+}
+
+function Row({ label, value, highlight = "none" }: {
+  label: string; value: string | number; highlight?: "green" | "red" | "yellow" | "none"
+}) {
+  const vc =
+    highlight === "green" ? "text-emerald-300" :
+    highlight === "red" ? "text-rose-300" :
+    highlight === "yellow" ? "text-amber-300" :
+    "text-slate-300";
+  return (
+    <div className="flex gap-2 text-sm">
+      <span className="text-slate-500 shrink-0 w-44 text-right">{label}:</span>
+      <span className={vc}>{value}</span>
     </div>
   );
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="text-right">
-      <div className="text-[10px] text-slate-500 uppercase">{label}</div>
-      <div className={`font-semibold ${color ?? "text-slate-200"}`}>{value}</div>
+    <div>
+      <div className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</div>
+      <div className={`font-semibold tabular-nums ${color ?? "text-slate-200"}`}>{value}</div>
     </div>
   );
 }
 
-function BiasBox({ label, bias, biasColor, biasLabel }: {
+function BiasBox({ label, bias, bc, bl }: {
   label: string; bias: string;
-  biasColor: (b: string) => string;
-  biasLabel: (b: string) => string;
+  bc: (b: string) => string;
+  bl: (b: string) => string;
 }) {
+  const bg =
+    bias === "bullish" ? "bg-emerald-900/20 border-emerald-800/40" :
+    bias === "bearish" ? "bg-rose-900/20 border-rose-800/40" :
+    "bg-amber-900/20 border-amber-800/40";
   return (
-    <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-      <div className="text-[10px] text-slate-500 uppercase">{label}</div>
-      <div className={`text-lg font-bold ${biasColor(bias)}`}>{biasLabel(bias)}</div>
+    <div className={`border rounded-lg p-3 text-center ${bg}`}>
+      <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{label}</div>
+      <div className={`text-base font-bold ${bc(bias)}`}>{bl(bias)}</div>
     </div>
   );
 }
@@ -373,24 +543,28 @@ function SetupCard({ title, setup, type }: {
   setup: { entry: string; entry2?: string; sl: string; tp1: string; tp2: string; tp3: string; validWhen: string; invalidWhen: string };
   type: "long" | "short";
 }) {
-  const accent = type === "long" ? "border-emerald-800" : "border-rose-800";
-  const headerBg = type === "long" ? "bg-emerald-900/20" : "bg-rose-900/20";
+  const border = type === "long" ? "border-emerald-800/50" : "border-rose-800/50";
+  const headBg = type === "long" ? "bg-emerald-900/20 border-b-emerald-800/30" : "bg-rose-900/20 border-b-rose-800/30";
   return (
-    <section className={`bg-slate-900 border ${accent} rounded-xl overflow-hidden`}>
-      <div className={`${headerBg} px-5 py-3`}>
+    <section className={`bg-slate-900 border ${border} rounded-xl overflow-hidden`}>
+      <div className={`${headBg} border-b px-5 py-3`}>
         <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">{title}</h2>
       </div>
-      <div className="p-5 space-y-2 text-sm">
-        <Row label="Entry" value={setup.entry} />
-        {setup.entry2 && <Row label="Entry 2" value={setup.entry2} />}
-        <Row label="Stop Loss" value={setup.sl} />
-        <Row label="TP1" value={setup.tp1} />
-        <Row label="TP2" value={setup.tp2} />
-        <Row label="TP3" value={setup.tp3} />
-        <div className="border-t border-slate-700 pt-2 mt-2" />
-        <Row label="Geçerli" value={setup.validWhen} />
-        <Row label="İptal" value={setup.invalidWhen} />
+      <div className="p-5 space-y-1.5">
+        <Row label="Entry Zone" value={setup.entry} highlight={type === "long" ? "green" : "red"} />
+        {setup.entry2 && <Row label="Entry Zone 2" value={setup.entry2} highlight={type === "long" ? "green" : "red"} />}
+        <Row label="Stop Loss" value={setup.sl} highlight="red" />
+        <Row label="TP1" value={setup.tp1} highlight="green" />
+        <Row label="TP2" value={setup.tp2} highlight="green" />
+        <Row label="TP3" value={setup.tp3} highlight="green" />
+        <div className="border-t border-slate-700/50 my-2" />
+        <Row label="Geçerli şart" value={setup.validWhen} />
+        <Row label="İptal şartı" value={setup.invalidWhen} highlight="red" />
       </div>
     </section>
   );
+}
+
+function Unavailable() {
+  return <p className="text-sm text-amber-400 italic">Veri yetersiz / kaynak erişilemedi</p>;
 }
