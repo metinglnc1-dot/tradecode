@@ -224,10 +224,19 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
           </Group>
 
           {/* Volume Profile */}
-          <Group title="Anchored Volume Profile">
-            <div className="text-slate-400 text-sm italic">
-              Gerçek AVWAP için volume profile aracı gerekli. Hacim verisi sınırlı — kıyaslama için swing yapısı kullanıldı.
-            </div>
+          <Group title="Volume Profile (4H Tahmini)">
+            {r.volProfile.poc === 0 ? (
+              <Unavailable />
+            ) : (
+              <>
+                <Row label="POC" value={`$${fmt(r.volProfile.poc)}`} highlight="yellow" />
+                <Row label="VAH" value={`$${fmt(r.volProfile.vah)}`} highlight="red" />
+                <Row label="VAL" value={`$${fmt(r.volProfile.val)}`} highlight="green" />
+                <p className="text-xs text-slate-600 mt-1">
+                  Hacim verisi sınırlı — OKX/CoinGecko hacminden hesaplandı, gerçek VPVR yerini tutmaz
+                </p>
+              </>
+            )}
           </Group>
 
           {/* AMD */}

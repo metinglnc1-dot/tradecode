@@ -1,7 +1,7 @@
 import type {
   Asset, AnalysisReport, StructureResult, FVG, Zones,
   TradeSetup, LongTermPlan, PriceMapLevel, FundingResult, MacroResult, AMDResult,
-  FetchResult,
+  FetchResult, VolumeProfile,
 } from "./types";
 import {
   findSwings, analyzeStructure, findFVGs, findZones,
@@ -104,7 +104,7 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
     liquidation, macro,
     longSetup, shortSetup, longTermPlan,
     decision, confidence, bestSetup, riskNote,
-    priceMap, sources,
+    priceMap, volProfile, sources,
   };
 }
 

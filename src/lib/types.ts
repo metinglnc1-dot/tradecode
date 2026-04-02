@@ -161,6 +161,15 @@ export interface LongTermPlan {
   weakenedBy: string;
 }
 
+// ─── Volume Profile ──────────────────────────────────────────────────────────
+
+export interface VolumeProfile {
+  poc: number;
+  vah: number;
+  val: number;
+  description: string;
+}
+
 // ─── Price Map Level ─────────────────────────────────────────────────────────
 
 export interface PriceMapLevel {
@@ -229,6 +238,7 @@ export interface AnalysisReport {
   bestSetup: string;
   riskNote: string;
   priceMap: PriceMapLevel[];
+  volProfile: VolumeProfile;
 
   sources: SourceStatus[];
 }
