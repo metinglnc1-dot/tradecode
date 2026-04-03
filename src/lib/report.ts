@@ -114,11 +114,11 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
 
   // Decision
   const { decision, confidence, bestSetup, riskNote } = makeDecision(
-    struct4h, struct15m, fundingResult, macro, amd, orderFlow, zones, currentPrice, longShortResult
+    struct4h, struct15m, fundingResult, macro, amd, orderFlow, zones, currentPrice, longShortResult, volProfile
   );
 
   // Price map
-  const priceMap = buildPriceMap(currentPrice, zones, fvgs4h, swings4h);
+  const priceMap = buildPriceMap(currentPrice, zones, fvgs4h, swings4h, volProfile);
 
   return {
     asset,
@@ -268,6 +268,7 @@ function makeDecision(
   amd: AMDResult, orderFlow: import("./types").OrderFlowResult,
   zones: Zones, price: number,
   longShort?: LongShortResult,
+  volProfile?: VolumeProfile,
 ) {
   let score = 5; // Base confidence
   let decision: "LONG" | "SHORT" | "WAIT" = "WAIT";
@@ -313,6 +314,18 @@ function makeDecision(
     if (macro.warRisk.includes("Yüksek")) riskNote += "Savaş riski yüksek — volatilite artabilir. ";
   }
 
+  // Volume profile context
+  if (volProfile && volProfile.poc > 0) {
+    const aboveVAH = price > volProfile.vah;
+    const belowVAL = price < volProfile.val;
+    const nearPOC = Math.abs(price - volProfile.poc) / price < 0.005;
+    if (nearPOC) riskNote += "Fiyat POC'a yakın — güçlü denge bölgesi, yön kırılımı önemli. ";
+    if (aboveVAH && decision === "LONG") { score -= 0.5; riskNote += "Fiyat VAH üzerinde — uzak bölgeden long riski. "; }
+    if (belowVAL && decision === "SHORT") { score -= 0.5; riskNote += "Fiyat VAL altında — uzak bölgeden short riski. "; }
+    if (aboveVAH && decision === "SHORT") score += 0.5; // price extended above value, short confluent
+    if (belowVAL && decision === "LONG") score += 0.5;  // price extended below value, long confluent
+  }
+
   // Price position (mid-range = lower confidence)
   const nearSupply = zones.supply[0];
   const nearDemand = zones.demand[0];
@@ -350,7 +363,7 @@ function makeDecision(
 
 // ─── Price Map ───────────────────────────────────────────────────────────────
 
-function buildPriceMap(price: number, zones: Zones, fvgs: FVG[], swings: import("./types").SwingPoint[]): PriceMapLevel[] {
+function buildPriceMap(price: number, zones: Zones, fvgs: FVG[], swings: import("./types").SwingPoint[], volProfile?: VolumeProfile): PriceMapLevel[] {
   const levels: { price: number; label: string; tag: string }[] = [];
 
   zones.supply.forEach((z, i) => {
@@ -368,6 +381,12 @@ function buildPriceMap(price: number, zones: Zones, fvgs: FVG[], swings: import(
     levels.push({ price: f.bottom, label: `${f.type === "bearish" ? "Bear" : "Bull"} FVG Bot`, tag: "fvg" });
   });
 
+  if (volProfile && volProfile.poc > 0) {
+    levels.push({ price: volProfile.vah, label: "VAH (Value Area High)", tag: "vp" });
+    levels.push({ price: volProfile.poc, label: "POC (Point of Control)", tag: "poc" });
+    levels.push({ price: volProfile.val, label: "VAL (Value Area Low)", tag: "vp" });
+  }
+
   levels.push({ price, label: "CURRENT PRICE", tag: "CURRENT" });
 
   // Sort descending, dedup within 0.15%
@@ -379,12 +398,14 @@ function buildPriceMap(price: number, zones: Zones, fvgs: FVG[], swings: import(
     }
   }
 
-  return deduped.slice(0, 16).map((l) => {
+  return deduped.slice(0, 20).map((l) => {
     const p = fmt(l.price).padStart(8);
     let line: string;
     if (l.tag === "CURRENT") line = `  ${p}  ══════════════════════  ${l.label}`;
     else if (l.tag === "SUPPLY") line = `  ${p}  ─────────────────────  ${l.label} ▲`;
     else if (l.tag === "DEMAND") line = `  ${p}  ─────────────────────  ${l.label} ▼`;
+    else if (l.tag === "poc")   line = `  ${p}  ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  ${l.label}`;
+    else if (l.tag === "vp")    line = `  ${p}  · · · · · · · · · · ·  ${l.label}`;
     else line = `  ${p}  · · · · · · · · · · ·  ${l.label}`;
     return { line, tag: l.tag, price: l.price };
   });

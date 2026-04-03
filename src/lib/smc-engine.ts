@@ -170,7 +170,8 @@ export function findZones(candles: Candle[], swings: SwingPoint[], currentPrice:
     if (!c) continue;
     const top = h.price;
     const bottom = Math.min(c.open, c.close);
-    if (top > currentPrice * 0.998) {
+    // Supply must be above current price (or active — price currently inside zone)
+    if (bottom >= currentPrice * 0.998) {
       const bodySize = Math.abs(c.close - c.open);
       const wickSize = c.high - Math.max(c.open, c.close);
       supply.push({
@@ -185,7 +186,8 @@ export function findZones(candles: Candle[], swings: SwingPoint[], currentPrice:
     if (!c) continue;
     const bottom = l.price;
     const top = Math.max(c.open, c.close);
-    if (bottom < currentPrice * 1.002) {
+    // Demand must be below current price (or active — price currently inside zone)
+    if (top <= currentPrice * 1.002) {
       const bodySize = Math.abs(c.close - c.open);
       const wickSize = Math.min(c.open, c.close) - c.low;
       demand.push({
@@ -196,7 +198,9 @@ export function findZones(candles: Candle[], swings: SwingPoint[], currentPrice:
   }
 
   return {
+    // Supply: nearest first (lowest bottom → closest above price)
     supply: supply.sort((a, b) => a.bottom - b.bottom).slice(0, 5),
+    // Demand: nearest first (highest bottom → closest below price)
     demand: demand.sort((a, b) => b.bottom - a.bottom).slice(0, 5),
   };
 }
@@ -404,6 +408,9 @@ export function estimateLiquidation(
 export function estimateVolumeProfile(candles: Candle[]) {
   if (!candles.length) return { poc: 0, vah: 0, val: 0, description: "Veri yetersiz" };
 
+  const totalVol = candles.reduce((a, c) => a + c.vol, 0);
+  if (totalVol === 0) return { poc: 0, vah: 0, val: 0, description: "Hacim verisi mevcut değil (sentez mum)" };
+
   // Create price buckets
   const high = Math.max(...candles.map((c) => c.high));
   const low = Math.min(...candles.map((c) => c.low));
@@ -426,7 +433,6 @@ export function estimateVolumeProfile(candles: Candle[]) {
   const poc = low + (pocBucket + 0.5) * step;
 
   // Value area = 70% of volume around POC
-  const totalVol = volByBucket.reduce((a, b) => a + b, 0);
   const targetVol = totalVol * 0.7;
   let cumVol = volByBucket[pocBucket];
   let lo = pocBucket, hi = pocBucket;

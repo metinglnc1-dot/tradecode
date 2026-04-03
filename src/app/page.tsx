@@ -482,6 +482,8 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
                 l.tag === "SUPPLY" ? "text-rose-400" :
                 l.tag === "DEMAND" ? "text-emerald-400" :
                 l.tag === "supply" || l.tag === "demand" ? "text-slate-500" :
+                l.tag === "poc" ? "text-yellow-400 font-semibold" :
+                l.tag === "vp" ? "text-slate-500" :
                 "text-amber-400/80"
               }>{l.line}</div>
             ))}
