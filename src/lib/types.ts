@@ -161,6 +161,12 @@ export interface LongTermPlan {
   weakenedBy: string;
 }
 
+// ─── Sparkline ───────────────────────────────────────────────────────────────
+
+export interface SparkCandle {
+  o: number; h: number; l: number; c: number; ts: number; v: number;
+}
+
 // ─── Volume Profile ──────────────────────────────────────────────────────────
 
 export interface VolumeProfile {
@@ -207,6 +213,8 @@ export interface FetchResult {
 export interface OIResult {
   oiUsd: string;        // formatted e.g. "$2.05B"
   oiContracts: string;  // raw contracts
+  change24h: string;    // e.g. "+3.2%" or "–"
+  changeBias: "rising" | "falling" | "neutral" | "unknown";
   available: boolean;
 }
 
@@ -251,6 +259,7 @@ export interface AnalysisReport {
   confidence: number;
   bestSetup: string;
   riskNote: string;
+  sparkline: SparkCandle[];
   priceMap: PriceMapLevel[];
   volProfile: VolumeProfile;
 

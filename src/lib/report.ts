@@ -1,7 +1,7 @@
 import type {
   Asset, AnalysisReport, StructureResult, FVG, Zones,
   TradeSetup, LongTermPlan, PriceMapLevel, FundingResult, MacroResult, AMDResult,
-  FetchResult, VolumeProfile, OIResult, LongShortResult,
+  FetchResult, VolumeProfile, OIResult, LongShortResult, SparkCandle,
 } from "./types";
 import {
   findSwings, analyzeStructure, findFVGs, findZones,
@@ -77,9 +77,20 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
           : usd >= 1e6
             ? `$${(usd / 1e6).toFixed(1)}M`
             : `$${usd.toFixed(0)}`;
-        return { oiUsd: fmtUsd, oiContracts: contracts.toFixed(0), available: true };
+        // OI 24h change from history
+        let change24h = "–";
+        let changeBias: OIResult["changeBias"] = "unknown";
+        if (coinglassOI.history) {
+          const { latest, oldOI } = coinglassOI.history;
+          if (oldOI > 0) {
+            const pct = ((latest - oldOI) / oldOI) * 100;
+            change24h = `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
+            changeBias = pct > 2 ? "rising" : pct < -2 ? "falling" : "neutral";
+          }
+        }
+        return { oiUsd: fmtUsd, oiContracts: contracts.toFixed(0), change24h, changeBias, available: true };
       })()
-    : { oiUsd: "–", oiContracts: "–", available: false };
+    : { oiUsd: "–", oiContracts: "–", change24h: "–", changeBias: "unknown", available: false };
 
   // Long/Short ratio (OKX public endpoint)
   const longShortResult: LongShortResult = coinglassLS
@@ -134,6 +145,9 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
     longShort: longShortResult,
     liquidation, macro,
     longSetup, shortSetup, longTermPlan,
+    sparkline: klines4h.slice(-60).map((c): SparkCandle => ({
+      o: c.open, h: c.high, l: c.low, c: c.close, ts: c.timestamp, v: c.vol,
+    })),
     decision, confidence, bestSetup, riskNote,
     priceMap, volProfile, sources,
   };

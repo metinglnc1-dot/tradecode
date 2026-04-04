@@ -65,6 +65,21 @@ async function fetchOKXOpenInterest(asset: "BTC" | "ETH") {
   return data[0] ?? null; // { oi, oiCcy, oiUsd, ts }
 }
 
+// OI history for 24h change — returns array [[ts, oi, vol], ...]
+async function fetchOKXOIHistory(asset: "BTC" | "ETH") {
+  const ccy = asset === "BTC" ? "BTC" : "ETH";
+  const data = await okxGet(`/api/v5/rubik/stat/contracts/open-interest-volume?ccy=${ccy}&period=1H`);
+  // data[0] = latest, data[-1] = oldest; each entry is [ts, oi, vol]
+  if (!data || data.length < 2) return null;
+  const latest = parseFloat(data[0][1]);
+  // find entry ~24h ago
+  const tsNow = parseInt(data[0][0]);
+  const ts24h = tsNow - 24 * 3600 * 1000;
+  const old = data.find((d: string[]) => parseInt(d[0]) <= ts24h);
+  const oldOI = old ? parseFloat(old[1]) : parseFloat(data[data.length - 1][1]);
+  return { latest, oldOI };
+}
+
 async function fetchOKXLongShort(asset: "BTC" | "ETH") {
   const ccy = asset === "BTC" ? "BTC" : "ETH";
   const data = await okxGet(`/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${ccy}&period=1H`);
@@ -256,6 +271,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     PromiseSettledResult<RSSItem[]>,
     PromiseSettledResult<any>,
     PromiseSettledResult<any>,
+    PromiseSettledResult<any>,
   ];
 
   if (isCrypto) {
@@ -269,6 +285,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       fetchNewsHeadlines(),
       fetchOKXOpenInterest(asset as "BTC" | "ETH"),
       fetchOKXLongShort(asset as "BTC" | "ETH"),
+      fetchOKXOIHistory(asset as "BTC" | "ETH"),
     ]) as typeof results;
   } else {
     // Gold: sequential to avoid CoinGecko rate limiting
@@ -307,7 +324,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     };
   }
 
-  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, newsR, oiR, lsR] = results;
+  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, newsR, oiR, lsR, oiHistR] = results;
   const prefix = `OKX ${asset}`;
 
   return {
@@ -317,7 +334,11 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     klinesDaily: track(kDayR, `${prefix} Daily (200 bar)`, [] as Candle[]),
     funding: track(fundingR, `OKX ${asset} Funding Rate`, null),
     gecko: track(geckoR, `CoinGecko ${asset}`, null),
-    coinglassOI: track(oiR, `OKX ${asset} Open Interest`, null),
+    coinglassOI: (() => {
+      const oi = oiR.status === "fulfilled" ? oiR.value : null;
+      const hist = oiHistR.status === "fulfilled" ? oiHistR.value : null;
+      return oi ? { ...oi, history: hist } : null;
+    })(),
     coinglassLiq: null,
     coinglassLS: track(lsR, `OKX ${asset} L/S Ratio`, null),
     newsHeadlines: track(newsR, "RSS Feeds (allorigins CORS proxy)", [] as RSSItem[]),

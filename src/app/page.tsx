@@ -215,7 +215,7 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-xs text-slate-500 mb-1">
-              {r.asset}/USD{r.asset !== "GOLD" ? "T" : ""} · Futures
+              {r.asset}/USD{r.asset !== "GOLD" ? "T" : ""} · {r.asset !== "GOLD" ? "Futures" : "PAXG Proxy"}
             </div>
             <div className="text-3xl font-bold text-white tabular-nums">
               ${fmt(r.currentPrice)}
@@ -230,6 +230,17 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
             {r.vol24h !== "?" && <Stat label="Vol 24h" value={r.vol24h} />}
           </div>
         </div>
+        {r.sparkline.length >= 10 && (
+          <div className="mt-4">
+            <SparklineChart
+              candles={r.sparkline}
+              currentPrice={r.currentPrice}
+              supply={r.zones.supply[0] ?? null}
+              demand={r.zones.demand[0] ?? null}
+              poc={r.volProfile.poc || null}
+            />
+          </div>
+        )}
         <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-600">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot inline-block" />
           {new Date(r.timestamp).toLocaleString("tr-TR")}
@@ -331,7 +342,14 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
           {/* Funding / OI / L/S */}
           <Group title="OI / Funding / Positioning">
             {r.oi.available
-              ? <Row label="Open Interest" value={`${r.oi.oiUsd} (${r.oi.oiContracts} kontrat)`} />
+              ? <>
+                  <Row label="Open Interest" value={`${r.oi.oiUsd} (${r.oi.oiContracts} kontrat)`} />
+                  <Row
+                    label="OI 24h Değişim"
+                    value={r.oi.change24h}
+                    highlight={r.oi.changeBias === "rising" ? "green" : r.oi.changeBias === "falling" ? "red" : "none"}
+                  />
+                </>
               : <Row label="Open Interest" value="Veri yetersiz / kaynak erişilemedi" />
             }
             {r.funding.rate === null
@@ -623,4 +641,157 @@ function SetupCard({ title, setup, type }: {
 
 function Unavailable() {
   return <p className="text-sm text-amber-400 italic">Veri yetersiz / kaynak erişilemedi</p>;
+}
+
+// ─── Sparkline Chart ─────────────────────────────────────────────────────────
+
+import type { SparkCandle } from "@/lib/types";
+import type { Zone } from "@/lib/types";
+
+function SparklineChart({ candles, currentPrice, supply, demand, poc }: {
+  candles: SparkCandle[];
+  currentPrice: number;
+  supply: Zone | null;
+  demand: Zone | null;
+  poc: number | null;
+}) {
+  const W = 600;
+  const H = 120;
+  const PAD = { top: 8, bottom: 24, left: 4, right: 4 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const allH = candles.map(c => c.h);
+  const allL = candles.map(c => c.l);
+  const priceMin = Math.min(...allL);
+  const priceMax = Math.max(...allH);
+  const priceRange = priceMax - priceMin || 1;
+
+  const candleCount = candles.length;
+  const candleW = innerW / candleCount;
+  const bodyW = Math.max(1, candleW * 0.6);
+
+  const py = (price: number) =>
+    PAD.top + innerH - ((price - priceMin) / priceRange) * innerH;
+  const px = (i: number) =>
+    PAD.left + (i + 0.5) * candleW;
+
+  // Volume bars — scale to bottom 20% of chart
+  const maxVol = Math.max(...candles.map(c => c.v), 1);
+  const volBarH = innerH * 0.2;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full"
+      style={{ height: 120 }}
+      preserveAspectRatio="none"
+    >
+      {/* Supply zone band */}
+      {supply && supply.bottom < priceMax && (
+        <rect
+          x={PAD.left} y={py(Math.min(supply.top, priceMax))}
+          width={innerW}
+          height={Math.max(0, py(supply.bottom) - py(Math.min(supply.top, priceMax)))}
+          fill="rgba(239,68,68,0.08)"
+        />
+      )}
+
+      {/* Demand zone band */}
+      {demand && demand.top > priceMin && (
+        <rect
+          x={PAD.left} y={py(Math.min(demand.top, priceMax))}
+          width={innerW}
+          height={Math.max(0, py(demand.bottom) - py(Math.min(demand.top, priceMax)))}
+          fill="rgba(16,185,129,0.08)"
+        />
+      )}
+
+      {/* POC line */}
+      {poc && poc > priceMin && poc < priceMax && (
+        <line
+          x1={PAD.left} y1={py(poc)} x2={PAD.left + innerW} y2={py(poc)}
+          stroke="rgba(250,204,21,0.5)" strokeWidth="0.8" strokeDasharray="3 3"
+        />
+      )}
+
+      {/* Volume bars */}
+      {candles.map((c, i) => {
+        const barH = (c.v / maxVol) * volBarH;
+        const bull = c.c >= c.o;
+        return (
+          <rect
+            key={`v${i}`}
+            x={px(i) - bodyW / 2}
+            y={H - PAD.bottom - barH}
+            width={bodyW}
+            height={barH}
+            fill={bull ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}
+          />
+        );
+      })}
+
+      {/* Candles */}
+      {candles.map((c, i) => {
+        const bull = c.c >= c.o;
+        const col = bull ? "#10b981" : "#ef4444";
+        const bodyTop = py(Math.max(c.o, c.c));
+        const bodyBot = py(Math.min(c.o, c.c));
+        const bodyHeight = Math.max(0.8, bodyBot - bodyTop);
+        return (
+          <g key={`c${i}`}>
+            {/* Wick */}
+            <line
+              x1={px(i)} y1={py(c.h)}
+              x2={px(i)} y2={py(c.l)}
+              stroke={col} strokeWidth="0.8" opacity="0.7"
+            />
+            {/* Body */}
+            <rect
+              x={px(i) - bodyW / 2}
+              y={bodyTop}
+              width={bodyW}
+              height={bodyHeight}
+              fill={bull ? col : col}
+              opacity={0.85}
+            />
+          </g>
+        );
+      })}
+
+      {/* Current price line */}
+      {currentPrice >= priceMin && currentPrice <= priceMax && (
+        <>
+          <line
+            x1={PAD.left} y1={py(currentPrice)}
+            x2={PAD.left + innerW} y2={py(currentPrice)}
+            stroke="#60a5fa" strokeWidth="0.8" strokeDasharray="4 2"
+          />
+          <text
+            x={PAD.left + innerW - 2} y={py(currentPrice) - 2}
+            fill="#60a5fa" fontSize="7" textAnchor="end"
+          >
+            {currentPrice > 10000
+              ? currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })
+              : currentPrice.toFixed(1)}
+          </text>
+        </>
+      )}
+
+      {/* X-axis label: first and last timestamp */}
+      {candles.length > 0 && (
+        <>
+          <text x={PAD.left} y={H - 4} fill="#475569" fontSize="7">
+            {new Date(candles[0].ts).toLocaleDateString("tr-TR", { month: "short", day: "numeric" })}
+          </text>
+          <text x={PAD.left + innerW} y={H - 4} fill="#475569" fontSize="7" textAnchor="end">
+            {new Date(candles[candles.length - 1].ts).toLocaleDateString("tr-TR", { month: "short", day: "numeric" })}
+          </text>
+          <text x={W / 2} y={H - 4} fill="#334155" fontSize="7" textAnchor="middle">
+            4H · son {candles.length} mum
+          </text>
+        </>
+      )}
+    </svg>
+  );
 }
