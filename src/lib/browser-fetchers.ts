@@ -232,7 +232,8 @@ async function fetchGoldData() {
   let klinesDaily: Candle[] = await fetchGeckoOHLC("GOLD", 90);
   if (!klinesDaily.length) klinesDaily = await fetchGeckoChartCandles("GOLD", 90, 24);
 
-  return { ticker, klines4h, klines15m, klinesDaily };
+  // Return market too so the orchestrator can reuse it (avoids a second API call)
+  return { ticker, market, klines4h, klines15m, klinesDaily };
 }
 
 // ─── Master orchestrator ─────────────────────────────────────────────────────
@@ -288,15 +289,13 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       fetchOKXOIHistory(asset as "BTC" | "ETH"),
     ]) as typeof results;
   } else {
-    // Gold: sequential to avoid CoinGecko rate limiting
+    // Gold: sequential OHLC fetches to avoid CoinGecko rate limiting;
+    // market data is fetched once inside fetchGoldData and reused for gecko field
     const goldData = await fetchGoldData().catch(() => ({
-      ticker: null, klines4h: [] as Candle[],
-      klines15m: [] as Candle[], klinesDaily: [] as Candle[],
+      ticker: null, market: null,
+      klines4h: [] as Candle[], klines15m: [] as Candle[], klinesDaily: [] as Candle[],
     }));
-    const [geckoR, newsR] = await Promise.allSettled([
-      fetchGeckoMarket("GOLD"),
-      fetchNewsHeadlines(),
-    ]);
+    const newsR = await Promise.allSettled([fetchNewsHeadlines()]).then(r => r[0]);
 
     return {
       ticker: goldData.ticker,
@@ -304,7 +303,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       klines15m: goldData.klines15m,
       klinesDaily: goldData.klinesDaily,
       funding: null,
-      gecko: geckoR.status === "fulfilled" ? geckoR.value : null,
+      gecko: goldData.market,   // reuse — no second CoinGecko call
       coinglassOI: null,
       coinglassLiq: null,
       coinglassLS: null,
@@ -312,10 +311,10 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       sources: [
         { name: "CoinGecko Gold (PAXG) Ticker", status: goldData.ticker ? "ok" : "failed", detail: goldData.ticker ? "Veri alındı" : "Hata" },
         { name: "CoinGecko Gold 4H OHLC", status: goldData.klines4h.length ? "ok" : "failed", detail: goldData.klines4h.length ? `${goldData.klines4h.length} kayıt` : "Hata" },
-        { name: "CoinGecko Gold 15M OHLC", status: goldData.klines15m.length ? "ok" : "failed", detail: goldData.klines15m.length ? `${goldData.klines15m.length} kayıt` : "Hata" },
+        { name: "CoinGecko Gold ~30M OHLC", status: goldData.klines15m.length ? "ok" : "failed", detail: goldData.klines15m.length ? `${goldData.klines15m.length} kayıt` : "Hata" },
         { name: "CoinGecko Gold Daily", status: goldData.klinesDaily.length ? "ok" : "failed", detail: goldData.klinesDaily.length ? `${goldData.klinesDaily.length} kayıt` : "Hata" },
         { name: "Funding Rate", status: "failed", detail: "Altın için geçerli değil" },
-        { name: "CoinGecko Market Data", status: geckoR.status === "fulfilled" && geckoR.value ? "ok" : "failed", detail: geckoR.status === "fulfilled" ? "Veri alındı" : "Hata" },
+        { name: "CoinGecko Market Data", status: goldData.market ? "ok" : "failed", detail: goldData.market ? "Veri alındı (yeniden kullanıldı)" : "Hata" },
         { name: "RSS News (CORS proxy)", status: newsR.status === "fulfilled" && (newsR.value as RSSItem[]).length ? "ok" : "failed", detail: newsR.status === "fulfilled" ? `${(newsR.value as RSSItem[]).length} haber` : "Hata" },
         { name: "CoinGlass OI", status: "failed", detail: "API key gerekli" },
         { name: "CoinGlass Liquidation", status: "failed", detail: "API key gerekli" },

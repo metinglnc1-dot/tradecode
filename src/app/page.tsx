@@ -12,6 +12,7 @@ type Asset = "BTC" | "ETH" | "GOLD";
 export default function Home() {
   const [asset, setAsset] = useState<Asset>("BTC");
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [allReports, setAllReports] = useState<Partial<Record<Asset, AnalysisReport>>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -20,14 +21,26 @@ export default function Home() {
   const countRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const REFRESH_SECS = 300; // 5 minutes
+  const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
-  const analyze = useCallback(async () => {
+  // Per-asset cache stored in component state (survives asset switching, not page reload)
+  const cacheRef = useRef<Map<Asset, { report: AnalysisReport; ts: number }>>(new Map());
+
+  const analyze = useCallback(async (force = false) => {
+    // Use cached result if fresh enough and not forced
+    const cached = cacheRef.current.get(asset);
+    if (!force && cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      setReport(cached.report);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const data = await fetchAllBrowser(asset);
       const result = buildReport(asset, data);
+      cacheRef.current.set(asset, { report: result, ts: Date.now() });
       setReport(result);
+      setAllReports(prev => ({ ...prev, [asset]: result }));
     } catch (e: any) {
       setError(e.message ?? "Analiz sırasında hata oluştu");
     } finally {
@@ -45,7 +58,7 @@ export default function Home() {
     }
     setCountdown(REFRESH_SECS);
     timerRef.current = setInterval(() => {
-      analyze();
+      analyze(true); // force past cache on scheduled refresh
       setCountdown(REFRESH_SECS);
     }, REFRESH_SECS * 1000);
     countRef.current = setInterval(() => {
@@ -98,7 +111,7 @@ export default function Home() {
             {autoRefresh ? `↻ ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}` : "↻ Oto"}
           </button>
           <button
-            onClick={analyze}
+            onClick={() => analyze(true)}
             disabled={loading}
             className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
@@ -116,6 +129,35 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* ── Multi-asset overview strip ───────────────── */}
+      {Object.keys(allReports).length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(["BTC", "ETH", "GOLD"] as Asset[]).map((a) => {
+            const r = allReports[a];
+            if (!r) return null;
+            const isActive = a === asset;
+            const decColor =
+              r.decision === "LONG" ? "text-emerald-400 border-emerald-800/60" :
+              r.decision === "SHORT" ? "text-rose-400 border-rose-800/60" :
+              "text-amber-400 border-amber-800/60";
+            const bg = isActive ? "bg-slate-700/60" : "bg-slate-900/80 hover:bg-slate-800/60";
+            return (
+              <button
+                key={a}
+                onClick={() => { setAsset(a); setReport(r); }}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${decColor} ${bg} transition-all text-xs`}
+              >
+                <span className="text-slate-400 font-medium">{a === "GOLD" ? "XAU" : a}</span>
+                <span className="font-mono font-bold">${r.currentPrice > 10000 ? r.currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 }) : r.currentPrice.toFixed(1)}</span>
+                <span className={`font-bold ${r.change24h.startsWith("-") ? "text-rose-400" : "text-emerald-400"}`}>{r.change24h}%</span>
+                <span className="font-semibold">{r.decision}</span>
+                <span className="text-slate-500">{r.confidence}/10</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded-lg mb-6 text-sm">
