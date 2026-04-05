@@ -411,9 +411,12 @@ export function estimateVolumeProfile(candles: Candle[]) {
   const totalVol = candles.reduce((a, c) => a + c.vol, 0);
   if (totalVol === 0) return { poc: 0, vah: 0, val: 0, description: "Hacim verisi mevcut değil (sentez mum)" };
 
-  // Create price buckets
-  const high = Math.max(...candles.map((c) => c.high));
-  const low = Math.min(...candles.map((c) => c.low));
+  // single pass to get price range and fill volume buckets
+  let high = -Infinity, low = Infinity;
+  for (const c of candles) {
+    if (c.high > high) high = c.high;
+    if (c.low < low) low = c.low;
+  }
   const range = high - low;
   if (range === 0) return { poc: candles[0].close, vah: high, val: low, description: "Flat" };
 
@@ -428,8 +431,10 @@ export function estimateVolumeProfile(candles: Candle[]) {
   }
 
   // POC = bucket with max volume
-  const maxVol = Math.max(...volByBucket);
-  const pocBucket = volByBucket.indexOf(maxVol);
+  let maxVol = 0, pocBucket = 0;
+  for (let i = 0; i < buckets; i++) {
+    if (volByBucket[i] > maxVol) { maxVol = volByBucket[i]; pocBucket = i; }
+  }
   const poc = low + (pocBucket + 0.5) * step;
 
   // Value area = 70% of volume around POC

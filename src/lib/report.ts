@@ -10,12 +10,44 @@ import {
 } from "./smc-engine";
 import { analyzeNews } from "./news-engine";
 
+// ─── OI / L/S helpers ────────────────────────────────────────────────────────
+
+function buildOIResult(raw: any): OIResult {
+  if (!raw) return { oiUsd: "–", oiContracts: "–", change24h: "–", changeBias: "unknown", available: false };
+  const usd = parseFloat(raw.oiUsd ?? "0");
+  const contracts = parseFloat(raw.oiCcy ?? raw.oi ?? "0");
+  const oiUsd = usd >= 1e9 ? `$${(usd / 1e9).toFixed(2)}B` : usd >= 1e6 ? `$${(usd / 1e6).toFixed(1)}M` : `$${usd.toFixed(0)}`;
+  let change24h = "–";
+  let changeBias: OIResult["changeBias"] = "unknown";
+  if (raw.history) {
+    const { latest, oldOI } = raw.history;
+    if (oldOI > 0) {
+      const pct = ((latest - oldOI) / oldOI) * 100;
+      change24h = `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
+      changeBias = pct > 2 ? "rising" : pct < -2 ? "falling" : "neutral";
+    }
+  }
+  return { oiUsd, oiContracts: contracts.toFixed(0), change24h, changeBias, available: true };
+}
+
+function buildLSResult(raw: any): LongShortResult {
+  if (!raw) return { ratio: 0, interpretation: "–", available: false };
+  const r = raw.ratio as number;
+  const interpretation =
+    r > 2.5 ? "Aşırı Long — squeeze riski ↑" :
+    r > 1.8 ? "Long dominant — dikkatli" :
+    r > 1.2 ? "Hafif long ağırlıklı" :
+    r > 0.8 ? "Dengeli" :
+    r > 0.5 ? "Hafif short ağırlıklı" :
+    "Aşırı Short — short squeeze riski ↑";
+  return { ratio: r, interpretation, available: true };
+}
+
 // ─── Build full analysis report ──────────────────────────────────────────────
 
 export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
   const { klines4h, klines15m, klinesDaily, ticker, funding, gecko, coinglassOI, coinglassLiq, coinglassLS, newsHeadlines, sources } = data;
 
-  // Current price
   let currentPrice = 0;
   if (ticker) {
     currentPrice = typeof ticker.last === "string" ? parseFloat(ticker.last) : ticker.last ?? 0;
@@ -23,7 +55,7 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
     currentPrice = klines4h[klines4h.length - 1].close;
   }
 
-  // 24h data — handles Gate.io futures (high_24h/low_24h/volume_24h) and Yahoo Finance gold format
+  // handles Gate.io futures (high_24h/low_24h/volume_24h) and CoinGecko gold format
   let high24h = 0, low24h = 0, vol24h = "?";
   if (ticker) {
     high24h = parseFloat(ticker.high_24h ?? ticker.high24h ?? "0");
@@ -34,93 +66,34 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
       : "?";
   }
 
-  // Change percentages from CoinGecko
   const change24h = gecko?.price_change_percentage_24h?.toFixed(2) ?? "?";
   const change7d = gecko?.price_change_percentage_7d?.toFixed(2) ?? "?";
   const change30d = gecko?.price_change_percentage_30d?.toFixed(2) ?? "?";
 
-  // Swing detection
   const swings4h = findSwings(klines4h, 3);
   const swings15m = findSwings(klines15m, 4);
   const swingsDaily = klinesDaily.length >= 10 ? findSwings(klinesDaily, 3) : [];
 
-  // Structure analysis
   const struct4h = analyzeStructure(klines4h, swings4h, currentPrice);
   const struct15m = analyzeStructure(klines15m, swings15m, currentPrice);
   const structDaily = swingsDaily.length >= 4
     ? analyzeStructure(klinesDaily, swingsDaily, currentPrice)
     : null;
 
-  // FVGs
   const fvgs4h = findFVGs(klines4h, currentPrice);
   const fvgs15m = findFVGs(klines15m, currentPrice);
-
-  // Zones
   const zones = findZones(klines4h, swings4h, currentPrice);
-
-  // AMD
   const amd = analyzeAMD(klines4h, swings4h, currentPrice);
-
-  // Order flow
   const orderFlow = analyzeOrderFlow(klines4h, klines15m, currentPrice);
-
-  // Funding
   const fundingResult = analyzeFunding(funding);
-
-  // Open Interest (OKX public endpoint)
-  const oiResult: OIResult = coinglassOI
-    ? (() => {
-        const usd = parseFloat(coinglassOI.oiUsd ?? "0");
-        const contracts = parseFloat(coinglassOI.oiCcy ?? coinglassOI.oi ?? "0");
-        const fmtUsd = usd >= 1e9
-          ? `$${(usd / 1e9).toFixed(2)}B`
-          : usd >= 1e6
-            ? `$${(usd / 1e6).toFixed(1)}M`
-            : `$${usd.toFixed(0)}`;
-        // OI 24h change from history
-        let change24h = "–";
-        let changeBias: OIResult["changeBias"] = "unknown";
-        if (coinglassOI.history) {
-          const { latest, oldOI } = coinglassOI.history;
-          if (oldOI > 0) {
-            const pct = ((latest - oldOI) / oldOI) * 100;
-            change24h = `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
-            changeBias = pct > 2 ? "rising" : pct < -2 ? "falling" : "neutral";
-          }
-        }
-        return { oiUsd: fmtUsd, oiContracts: contracts.toFixed(0), change24h, changeBias, available: true };
-      })()
-    : { oiUsd: "–", oiContracts: "–", change24h: "–", changeBias: "unknown", available: false };
-
-  // Long/Short ratio (OKX public endpoint)
-  const longShortResult: LongShortResult = coinglassLS
-    ? (() => {
-        const r = coinglassLS.ratio as number;
-        let interpretation = "Nötr";
-        if (r > 2.5) interpretation = "Aşırı Long — squeeze riski ↑";
-        else if (r > 1.8) interpretation = "Long dominant — dikkatli";
-        else if (r > 1.2) interpretation = "Hafif long ağırlıklı";
-        else if (r > 0.8) interpretation = "Dengeli";
-        else if (r > 0.5) interpretation = "Hafif short ağırlıklı";
-        else interpretation = "Aşırı Short — short squeeze riski ↑";
-        return { ratio: r, interpretation, available: true };
-      })()
-    : { ratio: 0, interpretation: "–", available: false };
-
-  // Liquidation
+  const oiResult = buildOIResult(coinglassOI);
+  const longShortResult = buildLSResult(coinglassLS);
   const liquidation = estimateLiquidation(swings4h, currentPrice, coinglassLiq);
-
-  // News / Macro
   const macro = analyzeNews(newsHeadlines, asset);
-
-  // Volume profile
   const volProfile = estimateVolumeProfile(klines4h);
 
-  // Trade setups
   const longSetup = buildLongSetup(currentPrice, struct4h, struct15m, zones, fvgs4h, fundingResult, macro, asset);
   const shortSetup = buildShortSetup(currentPrice, struct4h, struct15m, zones, fvgs4h, fundingResult, macro, asset);
-
-  // Long-term plan
   const longTermPlan = buildLongTermPlan(currentPrice, structDaily, struct4h, swingsDaily.length ? swingsDaily : swings4h, macro, asset);
 
   // Decision
@@ -427,7 +400,7 @@ function buildPriceMap(price: number, zones: Zones, fvgs: FVG[], swings: import(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function fmt(n: number): string {
+export function fmt(n: number): string {
   if (n > 10000) return n.toFixed(0);
   if (n > 100) return n.toFixed(1);
   return n.toFixed(2);

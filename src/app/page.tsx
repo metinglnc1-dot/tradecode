@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { AnalysisReport, SparkCandle, Zone } from "@/lib/types";
 import { fetchAllBrowser } from "@/lib/browser-fetchers";
-import { buildReport } from "@/lib/report";
+import { buildReport, fmt } from "@/lib/report";
 
 type Asset = "BTC" | "ETH" | "GOLD";
 
@@ -23,12 +23,20 @@ export default function Home() {
   const REFRESH_SECS = 300; // 5 minutes
   const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
-  // Per-asset cache stored in component state (survives asset switching, not page reload)
+  // Keep a ref so analyze() always sees the latest asset without being recreated
+  const assetRef = useRef<Asset>(asset);
+  assetRef.current = asset;
   const cacheRef = useRef<Map<Asset, { report: AnalysisReport; ts: number }>>(new Map());
 
-  const analyze = useCallback(async (force = false) => {
+  const analyze = useCallback(async (force = false, forAsset?: Asset) => {
+    const a = forAsset ?? assetRef.current;
+    // Sync selected asset if explicitly provided
+    if (forAsset && forAsset !== assetRef.current) {
+      setAsset(forAsset);
+      assetRef.current = forAsset;
+    }
     // Use cached result if fresh enough and not forced
-    const cached = cacheRef.current.get(asset);
+    const cached = cacheRef.current.get(a);
     if (!force && cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       setReport(cached.report);
       return;
@@ -36,17 +44,17 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchAllBrowser(asset);
-      const result = buildReport(asset, data);
-      cacheRef.current.set(asset, { report: result, ts: Date.now() });
+      const data = await fetchAllBrowser(a);
+      const result = buildReport(a, data);
+      cacheRef.current.set(a, { report: result, ts: Date.now() });
       setReport(result);
-      setAllReports(prev => ({ ...prev, [asset]: result }));
+      setAllReports(prev => ({ ...prev, [a]: result }));
     } catch (e: any) {
       setError(e.message ?? "Analiz sırasında hata oluştu");
     } finally {
       setLoading(false);
     }
-  }, [asset]);
+  }, []); // stable — reads asset via ref, accepts explicit forAsset param
 
   // Auto-refresh logic
   useEffect(() => {
@@ -149,7 +157,7 @@ export default function Home() {
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${decColor} ${bg} transition-all text-xs`}
               >
                 <span className="text-slate-400 font-medium">{a === "GOLD" ? "XAU" : a}</span>
-                <span className="font-mono font-bold">${r.currentPrice > 10000 ? r.currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 }) : r.currentPrice.toFixed(1)}</span>
+                <span className="font-mono font-bold">${fmt(r.currentPrice)}</span>
                 <span className={`font-bold ${r.change24h.startsWith("-") ? "text-rose-400" : "text-emerald-400"}`}>{r.change24h}%</span>
                 <span className="font-semibold">{r.decision}</span>
                 <span className="text-slate-500">{r.confidence}/10</span>
@@ -177,7 +185,7 @@ export default function Home() {
           ]).map(({ a, icon, label, tip }) => (
             <button
               key={a}
-              onClick={() => { setAsset(a); analyze(true); }}
+              onClick={() => analyze(true, a)}
               className="bg-slate-900 border border-slate-800 hover:border-slate-600 rounded-xl p-5 text-left transition-all group"
             >
               <div className="text-2xl mb-2">{icon}</div>
@@ -224,10 +232,6 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
         : "from-amber-900/80 to-amber-950 border-amber-700";
   const decText =
     r.decision === "LONG" ? "text-emerald-300" : r.decision === "SHORT" ? "text-rose-300" : "text-amber-300";
-
-  const fmt = (n: number) =>
-    n > 10000 ? n.toLocaleString("en-US", { maximumFractionDigits: 0 }) :
-    n > 100 ? n.toFixed(1) : n.toFixed(2);
 
   const pctColor = (s: string) => parseFloat(s) >= 0 ? "text-emerald-400" : "text-rose-400";
 
@@ -704,10 +708,12 @@ function CacheAge({ timestamp }: { timestamp: string }) {
   useEffect(() => {
     function update() {
       const diffSec = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-      if (diffSec < 10) setLabel("· az önce");
-      else if (diffSec < 60) setLabel(`· ${diffSec}s önce`);
-      else if (diffSec < 3600) setLabel(`· ${Math.floor(diffSec / 60)}dk önce`);
-      else setLabel(`· ${Math.floor(diffSec / 3600)}sa önce`);
+      const next =
+        diffSec < 10 ? "· az önce" :
+        diffSec < 60 ? `· ${diffSec}s önce` :
+        diffSec < 3600 ? `· ${Math.floor(diffSec / 60)}dk önce` :
+        `· ${Math.floor(diffSec / 3600)}sa önce`;
+      setLabel(prev => prev === next ? prev : next);
     }
     update();
     const id = setInterval(update, 15000);
@@ -719,6 +725,16 @@ function CacheAge({ timestamp }: { timestamp: string }) {
 
 // ─── Sparkline Chart ─────────────────────────────────────────────────────────
 
+const SPK = {
+  supply: "rgba(239,68,68,0.08)",
+  demand: "rgba(16,185,129,0.08)",
+  poc: "rgba(250,204,21,0.5)",
+  bull: "#10b981",
+  bear: "#ef4444",
+  bullVol: "rgba(16,185,129,0.25)",
+  bearVol: "rgba(239,68,68,0.25)",
+  price: "#60a5fa",
+} as const;
 
 function SparklineChart({ candles, currentPrice, supply, demand, poc }: {
   candles: SparkCandle[];
@@ -727,125 +743,69 @@ function SparklineChart({ candles, currentPrice, supply, demand, poc }: {
   demand: Zone | null;
   poc: number | null;
 }) {
-  const W = 600;
-  const H = 120;
+  const W = 600, H = 120;
   const PAD = { top: 8, bottom: 24, left: 4, right: 4 };
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
-  const allH = candles.map(c => c.h);
-  const allL = candles.map(c => c.l);
-  const priceMin = Math.min(...allL);
-  const priceMax = Math.max(...allH);
+  // Single pass: price range + max volume
+  let priceMin = Infinity, priceMax = -Infinity, maxVol = 1;
+  for (const c of candles) {
+    if (c.h > priceMax) priceMax = c.h;
+    if (c.l < priceMin) priceMin = c.l;
+    if (c.v > maxVol) maxVol = c.v;
+  }
   const priceRange = priceMax - priceMin || 1;
-
-  const candleCount = candles.length;
-  const candleW = innerW / candleCount;
+  const candleW = innerW / candles.length;
   const bodyW = Math.max(1, candleW * 0.6);
-
-  const py = (price: number) =>
-    PAD.top + innerH - ((price - priceMin) / priceRange) * innerH;
-  const px = (i: number) =>
-    PAD.left + (i + 0.5) * candleW;
-
-  // Volume bars — scale to bottom 20% of chart
-  const maxVol = Math.max(...candles.map(c => c.v), 1);
   const volBarH = innerH * 0.2;
 
+  const py = (p: number) => PAD.top + innerH - ((p - priceMin) / priceRange) * innerH;
+  const px = (i: number) => PAD.left + (i + 0.5) * candleW;
+
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
-      style={{ height: 120 }}
-      preserveAspectRatio="none"
-    >
-      {/* Supply zone band */}
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }} preserveAspectRatio="none">
       {supply && supply.bottom < priceMax && (
-        <rect
-          x={PAD.left} y={py(Math.min(supply.top, priceMax))}
-          width={innerW}
+        <rect x={PAD.left} y={py(Math.min(supply.top, priceMax))} width={innerW}
           height={Math.max(0, py(supply.bottom) - py(Math.min(supply.top, priceMax)))}
-          fill="rgba(239,68,68,0.08)"
-        />
+          fill={SPK.supply} />
       )}
-
-      {/* Demand zone band */}
       {demand && demand.top > priceMin && (
-        <rect
-          x={PAD.left} y={py(Math.min(demand.top, priceMax))}
-          width={innerW}
+        <rect x={PAD.left} y={py(Math.min(demand.top, priceMax))} width={innerW}
           height={Math.max(0, py(demand.bottom) - py(Math.min(demand.top, priceMax)))}
-          fill="rgba(16,185,129,0.08)"
-        />
+          fill={SPK.demand} />
       )}
-
-      {/* POC line */}
       {poc && poc > priceMin && poc < priceMax && (
-        <line
-          x1={PAD.left} y1={py(poc)} x2={PAD.left + innerW} y2={py(poc)}
-          stroke="rgba(250,204,21,0.5)" strokeWidth="0.8" strokeDasharray="3 3"
-        />
+        <line x1={PAD.left} y1={py(poc)} x2={PAD.left + innerW} y2={py(poc)}
+          stroke={SPK.poc} strokeWidth="0.8" strokeDasharray="3 3" />
       )}
 
-      {/* Volume bars */}
-      {candles.map((c, i) => {
-        const barH = (c.v / maxVol) * volBarH;
-        const bull = c.c >= c.o;
-        return (
-          <rect
-            key={`v${i}`}
-            x={px(i) - bodyW / 2}
-            y={H - PAD.bottom - barH}
-            width={bodyW}
-            height={barH}
-            fill={bull ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}
-          />
-        );
-      })}
-
-      {/* Candles */}
+      {/* Volume bars + candle bodies in a single pass */}
       {candles.map((c, i) => {
         const bull = c.c >= c.o;
-        const col = bull ? "#10b981" : "#ef4444";
+        const col = bull ? SPK.bull : SPK.bear;
         const bodyTop = py(Math.max(c.o, c.c));
-        const bodyBot = py(Math.min(c.o, c.c));
-        const bodyHeight = Math.max(0.8, bodyBot - bodyTop);
+        const bodyHeight = Math.max(0.8, py(Math.min(c.o, c.c)) - bodyTop);
+        const barH = (c.v / maxVol) * volBarH;
         return (
-          <g key={`c${i}`}>
-            {/* Wick */}
-            <line
-              x1={px(i)} y1={py(c.h)}
-              x2={px(i)} y2={py(c.l)}
-              stroke={col} strokeWidth="0.8" opacity="0.7"
-            />
-            {/* Body */}
-            <rect
-              x={px(i) - bodyW / 2}
-              y={bodyTop}
-              width={bodyW}
-              height={bodyHeight}
-              fill={bull ? col : col}
-              opacity={0.85}
-            />
+          <g key={i}>
+            <rect x={px(i) - bodyW / 2} y={H - PAD.bottom - barH} width={bodyW} height={barH}
+              fill={bull ? SPK.bullVol : SPK.bearVol} />
+            <line x1={px(i)} y1={py(c.h)} x2={px(i)} y2={py(c.l)}
+              stroke={col} strokeWidth="0.8" opacity="0.7" />
+            <rect x={px(i) - bodyW / 2} y={bodyTop} width={bodyW} height={bodyHeight}
+              fill={col} opacity={0.85} />
           </g>
         );
       })}
 
-      {/* Current price line */}
       {currentPrice >= priceMin && currentPrice <= priceMax && (
         <>
-          <line
-            x1={PAD.left} y1={py(currentPrice)}
-            x2={PAD.left + innerW} y2={py(currentPrice)}
-            stroke="#60a5fa" strokeWidth="0.8" strokeDasharray="4 2"
-          />
-          <text
-            x={PAD.left + innerW - 2} y={py(currentPrice) - 2}
-            fill="#60a5fa" fontSize="7" textAnchor="end"
-          >
-            {currentPrice > 10000
-              ? currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })
-              : currentPrice.toFixed(1)}
+          <line x1={PAD.left} y1={py(currentPrice)} x2={PAD.left + innerW} y2={py(currentPrice)}
+            stroke={SPK.price} strokeWidth="0.8" strokeDasharray="4 2" />
+          <text x={PAD.left + innerW - 2} y={py(currentPrice) - 2}
+            fill={SPK.price} fontSize="7" textAnchor="end">
+            {fmt(currentPrice)}
           </text>
         </>
       )}

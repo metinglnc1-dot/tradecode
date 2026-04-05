@@ -295,7 +295,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       ticker: null, market: null,
       klines4h: [] as Candle[], klines15m: [] as Candle[], klinesDaily: [] as Candle[],
     }));
-    const newsR = await Promise.allSettled([fetchNewsHeadlines()]).then(r => r[0]);
+    const [newsR] = await Promise.allSettled([fetchNewsHeadlines()]);
 
     return {
       ticker: goldData.ticker,
