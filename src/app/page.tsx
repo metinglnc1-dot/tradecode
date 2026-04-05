@@ -30,12 +30,10 @@ export default function Home() {
 
   const analyze = useCallback(async (force = false, forAsset?: Asset) => {
     const a = forAsset ?? assetRef.current;
-    // Sync selected asset if explicitly provided
     if (forAsset && forAsset !== assetRef.current) {
       setAsset(forAsset);
       assetRef.current = forAsset;
     }
-    // Use cached result if fresh enough and not forced
     const cached = cacheRef.current.get(a);
     if (!force && cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       setReport(cached.report);
@@ -54,7 +52,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, []); // stable — reads asset via ref, accepts explicit forAsset param
+  }, []);
 
   // Auto-refresh logic
   useEffect(() => {
