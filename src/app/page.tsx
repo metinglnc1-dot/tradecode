@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { AnalysisReport } from "@/lib/types";
+import type { AnalysisReport, SparkCandle, Zone } from "@/lib/types";
 import { fetchAllBrowser } from "@/lib/browser-fetchers";
 import { buildReport } from "@/lib/report";
 
@@ -169,15 +169,25 @@ export default function Home() {
       {report && !loading && <ReportView report={report} />}
 
       {!report && !loading && !error && (
-        <div className="text-center py-24 text-slate-500">
-          <div className="text-6xl mb-4">📊</div>
-          <p className="text-lg text-slate-400">
-            Varlık seçin ve{" "}
-            <span className="text-emerald-400 font-semibold">Analiz Et</span>
-          </p>
-          <p className="text-sm mt-2">
-            Canlı veri API&apos;lerden çekilecek · SMC analizi browser&apos;ınızda çalışır · Tahmin uydurulmaz
-          </p>
+        <div className="mt-8 grid sm:grid-cols-3 gap-4">
+          {([
+            { a: "BTC" as Asset, icon: "₿", label: "Bitcoin", tip: "OKX Futures · 4H/15M yapı · OI + L/S oranı · Funding rate · FVG · AMD modeli" },
+            { a: "ETH" as Asset, icon: "Ξ", label: "Ethereum", tip: "OKX Futures · BTC ile korelasyon gözetilir · Supply/Demand zone · Volume Profile" },
+            { a: "GOLD" as Asset, icon: "◈", label: "Altın (XAU)", tip: "CoinGecko PAXG proxy · Makro/savaş haberleri yüksek ağırlıklı · Uzun vadeli plan" },
+          ]).map(({ a, icon, label, tip }) => (
+            <button
+              key={a}
+              onClick={() => { setAsset(a); analyze(true); }}
+              className="bg-slate-900 border border-slate-800 hover:border-slate-600 rounded-xl p-5 text-left transition-all group"
+            >
+              <div className="text-2xl mb-2">{icon}</div>
+              <div className="font-semibold text-slate-200 mb-1 group-hover:text-white transition-colors">{label}</div>
+              <div className="text-xs text-slate-500">{tip}</div>
+              <div className="mt-3 text-xs text-emerald-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                Analiz Et →
+              </div>
+            </button>
+          ))}
         </div>
       )}
     </main>
@@ -286,6 +296,7 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
         <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-600">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot inline-block" />
           {new Date(r.timestamp).toLocaleString("tr-TR")}
+          <CacheAge timestamp={r.timestamp} />
         </div>
       </Card>
 
@@ -622,8 +633,8 @@ function Row({ label, value, highlight = "none" }: {
     "text-slate-300";
   return (
     <div className="flex gap-2 text-sm">
-      <span className="text-slate-500 shrink-0 w-44 text-right">{label}:</span>
-      <span className={vc}>{value}</span>
+      <span className="text-slate-500 shrink-0 w-28 sm:w-44 text-right">{label}:</span>
+      <span className={`${vc} min-w-0 break-words`}>{value}</span>
     </div>
   );
 }
@@ -685,10 +696,29 @@ function Unavailable() {
   return <p className="text-sm text-amber-400 italic">Veri yetersiz / kaynak erişilemedi</p>;
 }
 
+// ─── Cache Age ───────────────────────────────────────────────────────────────
+
+function CacheAge({ timestamp }: { timestamp: string }) {
+  const [label, setLabel] = useState("");
+
+  useEffect(() => {
+    function update() {
+      const diffSec = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+      if (diffSec < 10) setLabel("· az önce");
+      else if (diffSec < 60) setLabel(`· ${diffSec}s önce`);
+      else if (diffSec < 3600) setLabel(`· ${Math.floor(diffSec / 60)}dk önce`);
+      else setLabel(`· ${Math.floor(diffSec / 3600)}sa önce`);
+    }
+    update();
+    const id = setInterval(update, 15000);
+    return () => clearInterval(id);
+  }, [timestamp]);
+
+  return <span>{label}</span>;
+}
+
 // ─── Sparkline Chart ─────────────────────────────────────────────────────────
 
-import type { SparkCandle } from "@/lib/types";
-import type { Zone } from "@/lib/types";
 
 function SparklineChart({ candles, currentPrice, supply, demand, poc }: {
   candles: SparkCandle[];

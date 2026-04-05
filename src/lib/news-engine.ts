@@ -49,6 +49,7 @@ const BULLISH_CRYPTO = [
 const BEARISH_CRYPTO = [
   "rate hike", "hawkish", "ban", "crack down", "restrict", "sell", "dump",
   "outflow", "bearish", "plunge", "crash", "fear", "recession",
+  "tariff", "trade war", "sanction",
 ];
 
 const BULLISH_GOLD = [
@@ -124,8 +125,11 @@ export function analyzeNews(
     return item;
   });
 
-  // Filter relevant items
-  const relevant = categorized.filter((h) => h.relevance !== "low" || h.category !== "other");
+  // Filter relevant items — keep high/medium relevance, plus high-impact "other"
+  const relevant = categorized.filter(
+    (h) => h.relevance === "high" || h.relevance === "medium" ||
+           (h.category !== "other" && h.impact !== "neutral")
+  );
 
   // War risk assessment
   const warItems = relevant.filter((h) => h.category === "war");
@@ -158,16 +162,19 @@ export function analyzeNews(
   else if (bearishCount > bullishCount * 1.5) overallImpact = `Genel olarak BEARISH (${bearishCount} negatif vs ${bullishCount} pozitif haber)`;
   else overallImpact = `KARIŞIK — ${bullishCount} pozitif, ${bearishCount} negatif, ${relevant.length - bullishCount - bearishCount} nötr`;
 
+  const sortedHeadlines = relevant.sort((a, b) => {
+    const relOrder = { high: 0, medium: 1, low: 2 };
+    return relOrder[a.relevance] - relOrder[b.relevance];
+  }).slice(0, 15);
+
   return {
-    headlines: relevant.sort((a, b) => {
-      const relOrder = { high: 0, medium: 1, low: 2 };
-      return relOrder[a.relevance] - relOrder[b.relevance];
-    }).slice(0, 15),
+    headlines: sortedHeadlines,
     warRisk,
     inflationOutlook,
     ratesOutlook,
     dxyBias,
     overallImpact,
-    available: true,
+    // available only if we have relevant classified headlines to show
+    available: sortedHeadlines.length > 0,
   };
 }
