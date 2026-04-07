@@ -147,6 +147,7 @@ export interface TradeSetup {
   tp3: string;
   validWhen: string;
   invalidWhen: string;
+  rrNote: string;
 }
 
 // ─── Long-term Plan ──────────────────────────────────────────────────────────
@@ -174,6 +175,14 @@ export interface VolumeProfile {
   vah: number;
   val: number;
   description: string;
+}
+
+// ─── Fear & Greed ─────────────────────────────────────────────────────────────
+
+export interface FearGreedResult {
+  value: number;   // 0–100
+  label: string;   // e.g. "Extreme Fear", "Greed"
+  available: boolean;
 }
 
 // ─── Price Map Level ─────────────────────────────────────────────────────────
@@ -204,6 +213,7 @@ export interface FetchResult {
   coinglassOI: any;
   coinglassLiq: any;
   coinglassLS: any;
+  fearGreed: { value: number; label: string } | null;
   newsHeadlines: { title: string; source: string; pubDate: string }[];
   sources: SourceStatus[];
 }
@@ -250,6 +260,7 @@ export interface AnalysisReport {
   longShort: LongShortResult;
   liquidation: LiquidationResult;
   macro: MacroResult;
+  fearGreed: FearGreedResult;
 
   longSetup: TradeSetup;
   shortSetup: TradeSetup;

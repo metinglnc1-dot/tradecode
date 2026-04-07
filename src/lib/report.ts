@@ -1,7 +1,7 @@
 import type {
   Asset, AnalysisReport, StructureResult, FVG, Zones,
   TradeSetup, LongTermPlan, PriceMapLevel, FundingResult, MacroResult, AMDResult,
-  FetchResult, VolumeProfile, OIResult, LongShortResult, SparkCandle,
+  FetchResult, VolumeProfile, OIResult, LongShortResult, SparkCandle, FearGreedResult,
 } from "./types";
 import {
   findSwings, analyzeStructure, findFVGs, findZones,
@@ -96,9 +96,13 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
   const shortSetup = buildShortSetup(currentPrice, struct4h, struct15m, zones, fvgs4h, fundingResult, macro, asset);
   const longTermPlan = buildLongTermPlan(currentPrice, structDaily, struct4h, swingsDaily.length ? swingsDaily : swings4h, macro, asset);
 
+  const fearGreedResult: FearGreedResult = data.fearGreed
+    ? { ...data.fearGreed, available: true }
+    : { value: 50, label: "–", available: false };
+
   // Decision
   const { decision, confidence, bestSetup, riskNote } = makeDecision(
-    struct4h, struct15m, fundingResult, macro, amd, orderFlow, zones, currentPrice, longShortResult, volProfile
+    struct4h, struct15m, fundingResult, macro, amd, orderFlow, zones, currentPrice, longShortResult, volProfile, fearGreedResult
   );
 
   // Price map
@@ -117,6 +121,7 @@ export function buildReport(asset: Asset, data: FetchResult): AnalysisReport {
     oi: oiResult,
     longShort: longShortResult,
     liquidation, macro,
+    fearGreed: fearGreedResult,
     longSetup, shortSetup, longTermPlan,
     sparkline: klines4h.slice(-60).map((c): SparkCandle => ({
       o: c.open, h: c.high, l: c.low, c: c.close, ts: c.timestamp, v: c.vol,
@@ -150,6 +155,15 @@ function buildLongSetup(
   const tp2 = nearSupply ? fmt(nearSupply.top) : fmt(price * 1.025);
   const tp3 = fmt(price * 1.04);
 
+  const entryMid = nearDemand ? (nearDemand.bottom + nearDemand.top) / 2 : price;
+  const risk = entryMid - slBase;
+  const tp1Raw = nearSupply ? nearSupply.bottom : price * 1.015;
+  const tp2Raw = nearSupply ? nearSupply.top : price * 1.025;
+  const tp3Raw = price * 1.04;
+  const rrNote = risk > 0
+    ? `TP1 1:${((tp1Raw - entryMid) / risk).toFixed(1)} · TP2 1:${((tp2Raw - entryMid) / risk).toFixed(1)} · TP3 1:${((tp3Raw - entryMid) / risk).toFixed(1)}`
+    : "";
+
   const validConditions: string[] = [
     "15M CHoCH + bullish displacement demand bölgesinden",
     s4h.bias !== "bearish" ? "4H yapısı bearish değil" : "4H yapısı bearish — dikkatli gir",
@@ -164,7 +178,7 @@ function buildLongSetup(
   if (funding.bias === "bearish_signal") invalidConditions.push("Funding aşırı pozitif — squeeze riski");
 
   return {
-    entry, entry2, sl, tp1, tp2, tp3,
+    entry, entry2, sl, tp1, tp2, tp3, rrNote,
     validWhen: validConditions.join(" | "),
     invalidWhen: invalidConditions.join(" | "),
   };
@@ -191,6 +205,15 @@ function buildShortSetup(
   const tp2 = nearDemand ? fmt(nearDemand.bottom) : fmt(price * 0.975);
   const tp3 = deepDemand ? fmt(deepDemand.bottom) : fmt(price * 0.96);
 
+  const entryMid = nearSupply ? (nearSupply.bottom + nearSupply.top) / 2 : price;
+  const risk = slBase - entryMid;
+  const tp1Raw = nearDemand ? nearDemand.top : price * 0.985;
+  const tp2Raw = nearDemand ? nearDemand.bottom : price * 0.975;
+  const tp3Raw = deepDemand ? deepDemand.bottom : price * 0.96;
+  const rrNote = risk > 0
+    ? `TP1 1:${((entryMid - tp1Raw) / risk).toFixed(1)} · TP2 1:${((entryMid - tp2Raw) / risk).toFixed(1)} · TP3 1:${((entryMid - tp3Raw) / risk).toFixed(1)}`
+    : "";
+
   const validConditions: string[] = [
     "Supply bölgesinde 15M bearish engulfment veya BOS",
     s4h.bias !== "bullish" ? "4H yapısı bullish değil — short uygun" : "4H yapısı bullish — sadece scalp",
@@ -201,7 +224,7 @@ function buildShortSetup(
   invalidConditions.push("15M'de ardışık HH serisi supply üzerinde devam ederse");
 
   return {
-    entry, sl, tp1, tp2, tp3,
+    entry, sl, tp1, tp2, tp3, rrNote,
     validWhen: validConditions.join(" | "),
     invalidWhen: invalidConditions.join(" | "),
   };
@@ -256,6 +279,7 @@ function makeDecision(
   zones: Zones, price: number,
   longShort?: LongShortResult,
   volProfile?: VolumeProfile,
+  fearGreed?: FearGreedResult,
 ) {
   let score = 5; // Base confidence
   let decision: "LONG" | "SHORT" | "WAIT" = "WAIT";
@@ -311,6 +335,14 @@ function makeDecision(
     if (belowVAL && decision === "SHORT") { score -= 0.5; riskNote += "Fiyat VAL altında — uzak bölgeden short riski. "; }
     if (aboveVAH && decision === "SHORT") score += 0.5; // price extended above value, short confluent
     if (belowVAL && decision === "LONG") score += 0.5;  // price extended below value, long confluent
+  }
+
+  // Fear & Greed sentiment
+  if (fearGreed?.available) {
+    if (fearGreed.value <= 20 && decision === "LONG") { score += 0.5; riskNote += "Aşırı korku — contrarian long güçlenyor. "; }
+    if (fearGreed.value >= 80 && decision === "SHORT") { score += 0.5; riskNote += "Aşırı açgözlülük — contrarian short güçleniyor. "; }
+    if (fearGreed.value >= 80 && decision === "LONG") { score -= 0.5; riskNote += "F&G aşırı açgözlülük — kalabalık long. "; }
+    if (fearGreed.value <= 20 && decision === "SHORT") { score -= 0.5; riskNote += "F&G aşırı korku — short riski var. "; }
   }
 
   // Price position (mid-range = lower confidence)

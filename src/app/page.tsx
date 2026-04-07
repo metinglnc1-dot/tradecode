@@ -7,6 +7,16 @@ import { buildReport, fmt } from "@/lib/report";
 
 type Asset = "BTC" | "ETH" | "GOLD";
 
+function getCurrentSession(): { label: string; color: string } {
+  const h = new Date().getUTCHours();
+  if (h >= 0 && h < 8)   return { label: "Asia",     color: "text-violet-400" };
+  if (h >= 8 && h < 12)  return { label: "London",   color: "text-blue-400" };
+  if (h >= 12 && h < 13) return { label: "Overlap",  color: "text-cyan-400" };
+  if (h >= 13 && h < 17) return { label: "New York", color: "text-emerald-400" };
+  if (h >= 17 && h < 21) return { label: "NY Close", color: "text-amber-400" };
+  return { label: "Off-hrs", color: "text-slate-500" };
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -299,7 +309,14 @@ function ReportView({ report: r }: { report: AnalysisReport }) {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot inline-block" />
           {new Date(r.timestamp).toLocaleString("tr-TR")}
           <CacheAge timestamp={r.timestamp} />
+          <span className="mx-1 text-slate-700">·</span>
+          <span className={getCurrentSession().color}>{getCurrentSession().label}</span>
         </div>
+        {r.fearGreed.available && (
+          <div className="mt-2">
+            <FearGreedBadge value={r.fearGreed.value} label={r.fearGreed.label} />
+          </div>
+        )}
       </Card>
 
       {/* ── 1. Genel Yön ────────────────────────────── */}
@@ -669,7 +686,7 @@ function BiasBox({ label, bias, bc, bl }: {
 
 function SetupCard({ title, setup, type }: {
   title: string;
-  setup: { entry: string; entry2?: string; sl: string; tp1: string; tp2: string; tp3: string; validWhen: string; invalidWhen: string };
+  setup: { entry: string; entry2?: string; sl: string; tp1: string; tp2: string; tp3: string; rrNote: string; validWhen: string; invalidWhen: string };
   type: "long" | "short";
 }) {
   const border = type === "long" ? "border-emerald-800/50" : "border-rose-800/50";
@@ -686,6 +703,7 @@ function SetupCard({ title, setup, type }: {
         <Row label="TP1" value={setup.tp1} highlight="green" />
         <Row label="TP2" value={setup.tp2} highlight="green" />
         <Row label="TP3" value={setup.tp3} highlight="green" />
+        {setup.rrNote && <Row label="Risk:Reward" value={setup.rrNote} highlight="yellow" />}
         <div className="border-t border-slate-700/50 my-2" />
         <Row label="Geçerli şart" value={setup.validWhen} />
         <Row label="İptal şartı" value={setup.invalidWhen} highlight="red" />
@@ -696,6 +714,21 @@ function SetupCard({ title, setup, type }: {
 
 function Unavailable() {
   return <p className="text-sm text-amber-400 italic">Veri yetersiz / kaynak erişilemedi</p>;
+}
+
+function FearGreedBadge({ value, label }: { value: number; label: string }) {
+  const col =
+    value <= 24 ? "bg-rose-900/40 text-rose-300 border-rose-800/50" :
+    value <= 49 ? "bg-orange-900/40 text-orange-300 border-orange-800/50" :
+    value <= 74 ? "bg-emerald-900/40 text-emerald-300 border-emerald-800/50" :
+                  "bg-emerald-800/40 text-emerald-200 border-emerald-700/50";
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-xs ${col}`}>
+      <span className="font-bold tabular-nums">{value}</span>
+      <span className="text-[10px] opacity-80">{label}</span>
+      <span className="text-[10px] opacity-50">· F&amp;G</span>
+    </div>
+  );
 }
 
 // ─── Cache Age ───────────────────────────────────────────────────────────────

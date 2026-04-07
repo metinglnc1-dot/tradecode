@@ -209,6 +209,16 @@ async function fetchNewsHeadlines(): Promise<RSSItem[]> {
   return all;
 }
 
+// ─── Fear & Greed Index (alternative.me) ─────────────────────────────────────
+
+async function fetchFearGreed(): Promise<{ value: number; label: string } | null> {
+  const res = await fetch("https://api.alternative.me/fng/?limit=1", { signal: abort() });
+  const json = await res.json();
+  const item = json?.data?.[0];
+  if (!item) return null;
+  return { value: parseInt(item.value), label: item.value_classification };
+}
+
 // ─── Gold fetcher (CoinGecko PAX Gold with fallbacks) ────────────────────────
 
 async function fetchGoldData() {
@@ -273,6 +283,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     PromiseSettledResult<any>,
     PromiseSettledResult<any>,
     PromiseSettledResult<any>,
+    PromiseSettledResult<{ value: number; label: string } | null>,
   ];
 
   if (isCrypto) {
@@ -287,6 +298,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       fetchOKXOpenInterest(asset as "BTC" | "ETH"),
       fetchOKXLongShort(asset as "BTC" | "ETH"),
       fetchOKXOIHistory(asset as "BTC" | "ETH"),
+      fetchFearGreed(),
     ]) as typeof results;
   } else {
     // Gold: sequential OHLC fetches to avoid CoinGecko rate limiting;
@@ -295,7 +307,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       ticker: null, market: null,
       klines4h: [] as Candle[], klines15m: [] as Candle[], klinesDaily: [] as Candle[],
     }));
-    const [newsR] = await Promise.allSettled([fetchNewsHeadlines()]);
+    const [newsR, fgR] = await Promise.allSettled([fetchNewsHeadlines(), fetchFearGreed()]);
 
     return {
       ticker: goldData.ticker,
@@ -307,6 +319,7 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
       coinglassOI: null,
       coinglassLiq: null,
       coinglassLS: null,
+      fearGreed: fgR.status === "fulfilled" ? fgR.value : null,
       newsHeadlines: newsR.status === "fulfilled" ? newsR.value : [],
       sources: [
         { name: "CoinGecko Gold (PAXG) Ticker", status: goldData.ticker ? "ok" : "failed", detail: goldData.ticker ? "Veri alındı" : "Hata" },
@@ -319,11 +332,12 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
         { name: "CoinGlass OI", status: "failed", detail: "API key gerekli" },
         { name: "CoinGlass Liquidation", status: "failed", detail: "API key gerekli" },
         { name: "CoinGlass L/S Ratio", status: "failed", detail: "API key gerekli" },
+        { name: "Fear & Greed Index", status: (fgR.status === "fulfilled" && fgR.value) ? "ok" as const : "failed" as const, detail: (fgR.status === "fulfilled" && fgR.value) ? `${(fgR.value as any).value} · ${(fgR.value as any).label}` : "Veri alınamadı" },
       ],
     };
   }
 
-  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, newsR, oiR, lsR, oiHistR] = results;
+  const [tickerR, k4hR, k15mR, kDayR, fundingR, geckoR, newsR, oiR, lsR, oiHistR, fgR] = results;
   const prefix = `OKX ${asset}`;
 
   return {
@@ -340,10 +354,12 @@ export async function fetchAllBrowser(asset: Asset): Promise<FetchResult> {
     })(),
     coinglassLiq: null,
     coinglassLS: track(lsR, `OKX ${asset} L/S Ratio`, null),
+    fearGreed: fgR.status === "fulfilled" ? fgR.value : null,
     newsHeadlines: track(newsR, "RSS Feeds (allorigins CORS proxy)", [] as RSSItem[]),
     sources: [
       ...sources,
       { name: "CoinGlass Liquidation", status: "failed" as const, detail: "API key gerekli" },
+      ...(fgR.status === "fulfilled" && fgR.value ? [{ name: "Fear & Greed Index", status: "ok" as const, detail: `${fgR.value.value} · ${fgR.value.label}` }] : [{ name: "Fear & Greed Index", status: "failed" as const, detail: "Veri alınamadı" }]),
     ],
   };
 }

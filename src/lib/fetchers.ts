@@ -290,6 +290,7 @@ export async function fetchAll(asset: Asset): Promise<FetchResult> {
     coinglassOI: pick(cgOIR, "CoinGlass OI", null),
     coinglassLiq: pick(cgLiqR, "CoinGlass Liquidation", null),
     coinglassLS: pick(cgLSR, "CoinGlass L/S Ratio", null),
+    fearGreed: null,
     newsHeadlines: pick(newsR, "News RSS Feeds", [] as RSSItem[]),
     sources,
   };
