@@ -80,7 +80,7 @@ export class Scene {
     const s = 0.72 + 0.28 * E.back(q);
     const dy = (1 - E.out(q)) * 22;
     const parts = c.words.map((w) => `<tspan fill="${w.key ? PAL.yellow : '#fff'}">${esc(up(w.text))}</tspan>`).join(' ');
-    return `<g transform="translate(${W / 2} ${f1(CAP.y + dy)}) scale(${f1(s * 1000) / 1000})">
+    return `<g${q < 1 ? ' data-anim="1"' : ''} transform="translate(${W / 2} ${f1(CAP.y + dy)}) scale(${f1(s * 1000) / 1000})">
       <text data-qa="caption" data-g="cap" x="0" y="${f1(size * 0.36)}" text-anchor="middle" font-family="${FONT.ui}" font-weight="900" font-size="${f1(size)}" stroke="#0b0b0b" stroke-width="${f1(size * 0.2)}" paint-order="stroke" stroke-linejoin="round" filter="url(#shadow)">${parts}</text></g>`;
   }
 

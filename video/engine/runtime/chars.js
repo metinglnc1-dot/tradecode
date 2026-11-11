@@ -76,7 +76,7 @@ class Actor {
     p.face = face;
     // hop while travelling
     p.hop = 0; p.squash = 0;
-    if (p._moving) {
+    if (p._moving && this.path[p._i]?.hop !== false) {
       const dist = Math.hypot((p._to.x ?? 0) - (p._from.x ?? 0), (p._to.y ?? 0) - (p._from.y ?? 0));
       const hops = Math.max(1, Math.round(dist / 260));
       const ph = (p._raw * hops) % 1;
@@ -132,7 +132,7 @@ export class Bull extends Actor {
     const speaking = this.speaking(t);
     const mouth = speaking ? tl.mouth(t) : 0;
     const en = speaking ? tl.energy(t) : 0;
-    return { x: x + sx, y: y - b.hop - jy, s: b.scale, face: b.face, sq, mouth, en, moving: b._moving };
+    return { x: x + sx, y: y - b.hop - jy, ground: y, s: b.scale, face: b.face, sq, mouth, en, moving: b._moving };
   }
 
   arms(t, st) {
@@ -260,7 +260,7 @@ export class Bull extends Actor {
       ${arm(arms.F === 'R' ? 'L' : 'R', arms.F === 'R' ? arms.L : arms.R)}
       <ellipse cx="0" cy="-190" rx="128" ry="150" fill="url(#gBull)" stroke="${O}" stroke-width="7"/>
       <ellipse cx="${fx * 0.5}" cy="-165" rx="82" ry="102" fill="${PAL.goldL}" opacity="0.92"/>
-      <path d="M${fx * 0.4 - 22} -318 L ${fx * 0.4 + 22} -318 L ${fx * 0.4 + 12} -296 L ${fx * 0.4 + 26} -205 L ${fx * 0.4} -180 L ${fx * 0.4 - 26} -205 L ${fx * 0.4 - 12} -296 Z" fill="#22304d" stroke="#141c2e" stroke-width="4"/>
+      <path d="M${fx * 0.4 - 22} -318 L ${fx * 0.4 + 22} -318 L ${fx * 0.4 + 12} -296 L ${fx * 0.4 + 26} -205 L ${fx * 0.4} -180 L ${fx * 0.4 - 26} -205 L ${fx * 0.4 - 12} -296 Z" fill="${this.cfg.tie || '#22304d'}" stroke="#141c2e" stroke-width="4"/>
       <path d="M${fx * 0.4 - 18} -262 L ${fx * 0.4 + 20} -278 M ${fx * 0.4 - 22} -232 L ${fx * 0.4 + 24} -248" stroke="${PAL.gold}" stroke-width="6"/>`;
     const head = `
       <g transform="rotate(${f1(tilt)} 0 -330) translate(0 ${f1(headY)})">
@@ -278,7 +278,7 @@ export class Bull extends Actor {
     const front = arm(arms.F, arms.F === 'R' ? arms.R : arms.L);
     const s = st.s * vis.s;
     return `<g transform="translate(${f1(st.x)} ${f1(st.y)}) scale(${f1(s * sxs * 1000) / 1000} ${f1(s * sy * 1000) / 1000})">
-      <ellipse cx="0" cy="6" rx="${f1(130 * (1 - Math.min(0.5, (1300 - st.y) / 600)))}" ry="16" fill="#000" opacity="0.25" transform="translate(0 ${f1((1300 - st.y) / s)})"/>
+      <ellipse cx="0" cy="6" rx="${f1(130 * (1 - Math.min(0.5, (st.ground - st.y) / 600)))}" ry="16" fill="#000" opacity="0.25" transform="translate(0 ${f1((st.ground - st.y) / s)})"/>
       ${body}${facepalm ? head + front : front + head}
     </g>` + this.puff(st.x, st.y - 250 * st.s, vis.puffIn, 110) + this.puff(st.x, st.y - 250 * st.s, vis.puffOut, 110);
   }
@@ -301,7 +301,7 @@ export class Goblin extends Actor {
     for (const [, w] of this.acts(t, 'laugh')) jy = Math.max(jy, Math.abs(Math.sin(t * 16)) * 22 * w);
     for (const [, w] of this.acts(t, 'dance')) jy = Math.max(jy, Math.abs(Math.sin(t * 10)) * 50 * w);
     const sack = evalKeys(this.sackKeys, t, ['size']).size ?? 1;
-    return { x: b.x, y: (b.y ?? 1300) - b.hop - jy, s: b.scale, face: b.face, moving: b._moving, sack };
+    return { x: b.x, y: (b.y ?? 1300) - b.hop - jy, ground: b.y ?? 1300, s: b.scale, face: b.face, moving: b._moving, sack };
   }
   anchor(name, t) {
     const st = this.state(t);
@@ -334,7 +334,7 @@ export class Goblin extends Actor {
     const browA = lerp(-16, 18, sad);
     const s = st.s * vis.s;
     return `<g transform="translate(${f1(st.x)} ${f1(st.y)}) scale(${f1(s * fc * 1000) / 1000} ${f1(s * 1000) / 1000})">
-      <ellipse cx="0" cy="${f1((1300 - st.y) / s + 4)}" rx="70" ry="10" fill="#000" opacity="0.25"/>
+      <ellipse cx="0" cy="${f1((st.ground - st.y) / s + 4)}" rx="70" ry="10" fill="#000" opacity="0.25"/>
       ${sack}
       ${limb(-14, -42, -legA, 42, 14)}${limb(14, -42, legA, 42, 14)}
       <ellipse cx="${-14 - legA * 0.5}" cy="-2" rx="22" ry="10" fill="#4a2e14"/><ellipse cx="${14 + legA * 0.5}" cy="-2" rx="22" ry="10" fill="#4a2e14"/>

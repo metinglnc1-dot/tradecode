@@ -38,7 +38,7 @@ export default {
     { at: '1:scalper>', x: 500, y: 1020, zoom: 1.15, move: 0.7 },
     { at: '1:20', x: 610, y: 970, zoom: 1.0, move: 0.7 },
     { at: '2:trade>+0.15', x: 1800, y: 941, zoom: 0.92, move: 1.0 },
-    { at: '2:about', x: 1806, y: 953, zoom: 0.96, move: 0.8 },
+    { at: '2:about', x: 1803, y: 953, zoom: 0.96, move: 0.8, push: 0 },
     { at: '3+0.3', x: 3010, y: 956, zoom: 0.96, move: 0.85 },
     { at: '4', x: 3005, y: 925, zoom: 0.88, move: 0.6 },
     { at: '5+0.2', x: 4200, y: 953, zoom: 0.95, move: 0.8 },

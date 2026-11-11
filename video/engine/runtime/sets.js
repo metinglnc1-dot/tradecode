@@ -251,10 +251,198 @@ function outdoor(ox, t) {
   return s;
 }
 
-export const SETS = { room, exchange, whiteboard, outdoor };
+// ---------------- DUO: two desks side by side with a divider (comparisons) ----------------
+function duo(ox, t, o = {}) {
+  let s = wall(ox, 1200, '#1a2138', '#10162a', 'wDuo');
+  for (let i = 0; i < 20; i++) s += `<rect x="${ox + i * 60}" y="${TOP}" width="30" height="${FLOOR - TOP}" fill="#fff" opacity="0.02"/>`;
+  s += floor(ox, 1200, '#17121a', '#211a24');
+  const cols = o.colors || [PAL.red, PAL.green];
+  [0, 1].forEach((k) => {
+    const cx = ox + 300 + k * 600;
+    // wall screen
+    s += `<rect x="${cx - 190}" y="660" width="380" height="200" rx="12" fill="#0c0f16" stroke="#2a2f3d" stroke-width="6"/>
+      <rect x="${cx - 180}" y="670" width="360" height="180" fill="#0b1322"/>
+      ${chart(cx - 166, 684, 332, 152, t * (k ? 0.5 : 1.6) + k * 7, 'duo' + k, { count: 16, per: k ? 1.4 : 0.5, wick: 2, priceLine: false })}
+      <rect x="${cx - 190}" y="660" width="380" height="8" rx="4" fill="${cols[k]}" opacity="0.8"/>`;
+    // desk
+    s += `<rect x="${cx - 250}" y="1150" width="500" height="150" fill="#2a1e16"/><rect x="${cx - 270}" y="1130" width="540" height="26" rx="6" fill="#4a3526"/>
+      <rect x="${cx - 270}" y="1130" width="540" height="6" rx="3" fill="#6b4e37"/>
+      <ellipse cx="${cx}" cy="1420" rx="250" ry="56" fill="${cols[k]}" opacity="0.08"/>`;
+  });
+  // divider
+  s += `<line x1="${ox + 600}" x2="${ox + 600}" y1="200" y2="${FLOOR + 400}" stroke="${PAL.gold}" stroke-width="6" stroke-dasharray="26 18" stroke-dashoffset="${f1(-t * 40)}" opacity="0.55"/>`;
+  return s;
+}
+
+// ---------------- QUAD: four trading booths in a row, same chart on every screen ----------------
+function quad(ox, t, o = {}) {
+  let s = wall(ox, 1200, '#171d31', '#0f1424', 'wQuad');
+  s += floor(ox, 1200, '#141019', '#1e1824');
+  const cols = o.colors || [PAL.red, '#5c7cfa', PAL.green, PAL.gold];
+  cols.forEach((c, k) => {
+    const cx = ox + 165 + k * 290;
+    s += `<rect x="${cx - 132}" y="500" width="264" height="800" fill="${c}" opacity="0.06"/>
+      <rect x="${cx - 132}" y="500" width="264" height="8" fill="${c}" opacity="0.8"/>
+      <rect x="${cx - 112}" y="560" width="224" height="150" rx="10" fill="#0c0f16" stroke="#2a2f3d" stroke-width="5"/>
+      ${chart(cx - 100, 572, 200, 126, t, 'samechart', { count: 12, per: 1.2, wick: 2, priceLine: false })}
+      <rect x="${cx - 150}" y="1180" width="300" height="120" fill="#2a1e16"/><rect x="${cx - 160}" y="1165" width="320" height="20" rx="5" fill="#4a3526"/>`;
+    if (k) s += `<rect x="${cx - 147}" y="500" width="6" height="800" fill="#0a0d14"/>`;
+  });
+  return s;
+}
+
+// ---------------- TRACK: night stadium with lanes and hurdles ----------------
+function track(ox, t, o = {}) {
+  let s = `<defs><linearGradient id="skyT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070b1c"/><stop offset="1" stop-color="#1a1d3a"/></linearGradient></defs>
+    <rect x="${ox}" y="${TOP}" width="1200" height="${FLOOR - TOP}" fill="url(#skyT)"/>`;
+  s += stars(ox, 0, TOP + 100, 1200, 700, 30, t, 'ts');
+  // floodlights
+  [ox + 180, ox + 1020].forEach((lx, i) => {
+    s += `<rect x="${lx - 6}" y="150" width="12" height="520" fill="#2a2e3a"/><rect x="${lx - 60}" y="120" width="120" height="44" rx="8" fill="#3a3f52"/>
+      ${[0, 1, 2].map((j) => `<circle cx="${lx - 36 + j * 36}" cy="142" r="13" fill="#fff7d6"/>`).join('')}
+      <path d="M${lx - 60} 164 L ${lx - 260 + i * 120} 1300 L ${lx + 260 - (1 - i) * 120} 1300 L ${lx + 60} 164 Z" fill="#fff7d6" opacity="${f1((0.05 + 0.01 * Math.sin(t * 3 + i)) * 100) / 100}"/>`;
+  });
+  // stands with crowd
+  s += `<rect x="${ox}" y="760" width="1200" height="340" fill="#121428"/>`;
+  const r = rng('crowd');
+  for (let row = 0; row < 6; row++) for (let i = 0; i < 30; i++) {
+    const x = ox + 20 + i * 40 + (row % 2) * 20, y = 790 + row * 52 + Math.sin(t * 6 + i + row) * (r() < 0.3 ? 5 : 1);
+    s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="13" fill="${['#2b2f4a', '#353a5c', '#262a42'][(i + row) % 3]}"/>`;
+  }
+  s += `<rect x="${ox}" y="1100" width="1200" height="200" fill="#0f1220"/><rect x="${ox}" y="1096" width="1200" height="8" fill="${PAL.gold}" opacity="0.5"/>`;
+  // track surface
+  s += `<rect x="${ox}" y="${FLOOR}" width="1200" height="${BOT - FLOOR}" fill="#5a2a24"/>`;
+  for (let i = 0; i < 6; i++) s += `<line x1="${ox}" x2="${ox + 1200}" y1="${FLOOR + 40 + i * 90}" y2="${FLOOR + 40 + i * 90}" stroke="#e9e4d4" stroke-width="5" opacity="0.6"/>`;
+  // hurdles in front of each runner
+  (o.lanes || []).forEach((x) => {
+    s += `<g opacity="0.95"><rect x="${ox + x - 110}" y="1380" width="10" height="90" fill="#e9e4d4"/><rect x="${ox + x + 100}" y="1380" width="10" height="90" fill="#e9e4d4"/>
+      <rect x="${ox + x - 120}" y="1372" width="240" height="22" rx="4" fill="#e9e4d4"/><rect x="${ox + x - 120}" y="1372" width="60" height="22" fill="${PAL.red}"/><rect x="${ox + x}" y="1372" width="60" height="22" fill="${PAL.red}"/></g>`;
+  });
+  return s;
+}
+
+// ---------------- STAGE: dark stage with coloured spotlights per position ----------------
+function stage(ox, t, o = {}) {
+  let s = wall(ox, 1200, '#120e1c', '#0b0912', 'wStage');
+  // curtains
+  for (let i = 0; i < 7; i++) s += `<rect x="${ox + i * 26}" y="${TOP}" width="22" height="${FLOOR - TOP}" fill="#5a1426" opacity="${0.9 - i * 0.1}"/><rect x="${ox + 1178 - i * 26}" y="${TOP}" width="22" height="${FLOOR - TOP}" fill="#5a1426" opacity="${0.9 - i * 0.1}"/>`;
+  s += `<path d="M${ox} 140 Q ${ox + 600} 260 ${ox + 1200} 140 L ${ox + 1200} ${TOP} L ${ox} ${TOP} Z" fill="#6b1830"/>`;
+  const cols = o.colors || [PAL.red, '#5c7cfa', PAL.green, PAL.gold];
+  (o.spots || []).forEach((x, k) => {
+    const sw = 0.85 + 0.15 * Math.sin(t * 2 + k);
+    s += `<path d="M${ox + x - 30} 160 L ${ox + x - 150} ${FLOOR} L ${ox + x + 150} ${FLOOR} L ${ox + x + 30} 160 Z" fill="${cols[k]}" opacity="${f1(0.14 * sw * 100) / 100}"/>
+      <ellipse cx="${ox + x}" cy="${FLOOR + 10}" rx="170" ry="34" fill="${cols[k]}" opacity="0.3"/>
+      <rect x="${ox + x - 24}" y="140" width="48" height="30" rx="8" fill="#2a2e3a"/>`;
+  });
+  s += `<rect x="${ox}" y="${FLOOR}" width="1200" height="${BOT - FLOOR}" fill="#3a2a1e"/>`;
+  for (let i = 0; i < 9; i++) s += `<line x1="${ox}" x2="${ox + 1200}" y1="${FLOOR + 20 + i * 60}" y2="${FLOOR + 20 + i * 60}" stroke="#2a1e16" stroke-width="4"/>`;
+  s += `<rect x="${ox}" y="${FLOOR - 6}" width="1200" height="12" fill="${PAL.gold}" opacity="0.5"/>`;
+  return s;
+}
+
+// ---------------- SHAFT: building cut-away, elevator on the left, switchback stairs on the right ----------------
+// opts.floors: [{ y, label }] landings (feet level). Stairs connect consecutive landings.
+function shaft(ox, t, o = {}) {
+  const top = -2400;
+  let s = `<rect x="${ox - 700}" y="${top}" width="2600" height="${BOT - top}" fill="#161c2e"/>`;
+  for (let y = top; y < FLOOR; y += 120) s += `<line x1="${ox - 700}" x2="${ox + 1900}" y1="${y}" y2="${y}" stroke="#fff" stroke-opacity="0.02" stroke-width="2"/>`;
+  // elevator shaft
+  s += `<rect x="${ox + 80}" y="${top}" width="340" height="${FLOOR - top}" fill="#0b0e17"/>
+    <rect x="${ox + 96}" y="${top}" width="10" height="${FLOOR - top}" fill="#2a3042"/><rect x="${ox + 394}" y="${top}" width="10" height="${FLOOR - top}" fill="#2a3042"/>
+    <line x1="${ox + 250}" x2="${ox + 250}" y1="${top}" y2="${FLOOR}" stroke="#3a4157" stroke-width="4"/>`;
+  const floors = o.floors || [];
+  floors.forEach((f, i) => {
+    s += `<rect x="${ox + 420}" y="${f.y}" width="740" height="26" fill="#2c3346"/><rect x="${ox + 420}" y="${f.y}" width="740" height="6" fill="#3d465e"/>
+      <rect x="${ox + 80}" y="${f.y - 6}" width="340" height="8" fill="#3a4157" opacity="0.6"/>`;
+    if (f.label) s += `<rect x="${ox + 120}" y="${f.y - 700}" width="260" height="96" rx="14" fill="#0f1420" stroke="${PAL.gold}" stroke-width="5"/>
+      <text data-qa="bg" data-g="floor${i}" x="${ox + 250}" y="${f.y - 630}" text-anchor="middle" font-family="${FONT.ui}" font-weight="900" font-size="64" fill="${PAL.goldL}">${esc(f.label)}</text>`;
+  });
+  // switchback stairs between consecutive landings (right half)
+  for (let i = 0; i + 1 < floors.length; i++) {
+    const y0 = floors[i].y, y1 = floors[i + 1].y;
+    const dir = i % 2 === 0 ? 1 : -1; // first flight goes up to the right
+    const xa = dir < 0 ? ox + 1120 : ox + 560, xb = dir < 0 ? ox + 560 : ox + 1120;
+    const n = 10;
+    let d = `M${xa} ${y0}`;
+    for (let k = 0; k < n; k++) {
+      const x = xa + ((xb - xa) * (k + 1)) / n, y = y0 + ((y1 - y0) * (k + 1)) / n;
+      d += ` L ${f1(x - (xb - xa) / n)} ${f1(y)} L ${f1(x)} ${f1(y)}`;
+    }
+    s += `<path d="${d} L ${xb} ${y0 + 26} L ${xa} ${y0 + 26} Z" fill="#3a3046"/><path d="${d}" fill="none" stroke="#6b5a7a" stroke-width="6"/>`;
+    s += `<line x1="${xa}" y1="${y0 - 120}" x2="${xb}" y2="${y1 - 120}" stroke="#8a7a9a" stroke-width="6"/>`;
+  }
+  s += `<rect x="${ox - 700}" y="${FLOOR + 26}" width="2600" height="${BOT - FLOOR}" fill="#0e1018"/>`;
+  return s;
+}
+
+// ---------------- PIT: night ground with a deep pit and a long ladder ----------------
+function pit(ox, t, o = {}) {
+  const depth = o.depth || 1000, px0 = ox + 300, px1 = ox + 900;
+  let s = `<defs><linearGradient id="skyP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#060a1c"/><stop offset="1" stop-color="#1d1a3e"/></linearGradient></defs>
+    <rect x="${ox - 200}" y="${TOP - 600}" width="1900" height="${FLOOR - TOP + 600}" fill="url(#skyP)"/>`;
+  s += stars(ox, -200, TOP - 500, 1900, 1500, 70, t, 'ps');
+  s += `<circle cx="${ox + 980}" cy="420" r="60" fill="${PAL.goldL}"/><circle cx="${ox + 980}" cy="420" r="120" fill="${PAL.goldL}" opacity="0.07"/>`;
+  s += skyline(ox, -220, 1940, 1290, t, 'pitsky', '#121130', 380, 0.2);
+  // ground with the pit
+  s += `<rect x="${ox - 200}" y="${FLOOR}" width="1900" height="${depth + 900}" fill="#2a2130"/>
+    <rect x="${px0}" y="${FLOOR}" width="${px1 - px0}" height="${depth}" fill="#0c0a12"/>
+    <rect x="${px0 - 12}" y="${FLOOR}" width="12" height="${depth}" fill="#3a2e42"/><rect x="${px1}" y="${FLOOR}" width="12" height="${depth}" fill="#3a2e42"/>
+    <rect x="${ox - 200}" y="${FLOOR - 8}" width="1900" height="16" fill="#4a3a52"/>`;
+  for (let i = 1; i < 9; i++) s += `<line x1="${px0}" x2="${px1}" y1="${FLOOR + i * depth / 9}" y2="${FLOOR + i * depth / 9}" stroke="#1a1522" stroke-width="3"/>`;
+  // long ladder from the floor of the pit to the rim
+  const lx = px1 - 140;
+  s += `<rect x="${lx - 50}" y="${FLOOR - 120}" width="10" height="${depth + 120}" fill="#8d6e4a"/><rect x="${lx + 40}" y="${FLOOR - 120}" width="10" height="${depth + 120}" fill="#8d6e4a"/>`;
+  for (let y = FLOOR - 100; y < FLOOR + depth; y += 60) s += `<rect x="${lx - 46}" y="${y}" width="92" height="9" fill="#a5835a"/>`;
+  return s;
+}
+
+// ---------------- CHARTSCAPE: inside a chart, giant candles; opts.big = { x, top, bottom } ----------------
+function chartscape(ox, t, o = {}) {
+  let s = `<rect x="${ox - 300}" y="${TOP - 900}" width="1800" height="${BOT - TOP + 900}" fill="#0b111b"/>`;
+  for (let x = ox - 300; x < ox + 1500; x += 100) s += `<line x1="${x}" x2="${x}" y1="${TOP - 900}" y2="${FLOOR}" stroke="#1d2636" stroke-width="3"/>`;
+  for (let y = TOP - 900; y < FLOOR; y += 100) s += `<line x1="${ox - 300}" x2="${ox + 1500}" y1="${y}" y2="${y}" stroke="#1d2636" stroke-width="3"/>`;
+  // rising run of normal candles before the big one
+  const small = o.small || [];
+  small.forEach((c, i) => {
+    const col = c.up ? PAL.green : PAL.red, cx = ox + c.x;
+    s += `<line x1="${cx}" x2="${cx}" y1="${c.top - 40}" y2="${c.bottom + 40}" stroke="${col}" stroke-width="10"/>
+      <rect x="${cx - 45}" y="${c.top}" width="90" height="${c.bottom - c.top}" rx="8" fill="${col}"/>`;
+  });
+  const b = o.big;
+  if (b) {
+    const g = 0.5 + 0.5 * Math.sin(t * 3);
+    s += `<line x1="${ox + b.x}" x2="${ox + b.x}" y1="${b.top}" y2="${b.bottom + 60}" stroke="${PAL.green}" stroke-width="16"/>
+      <rect x="${ox + b.x - 140}" y="${b.top}" width="280" height="${b.bottom - b.top}" rx="14" fill="${PAL.green}"/>
+      <rect x="${ox + b.x - 140}" y="${b.top}" width="280" height="${b.bottom - b.top}" rx="14" fill="#fff" opacity="${f1(0.05 + 0.05 * g) }"/>`;
+  }
+  s += `<rect x="${ox - 300}" y="${FLOOR}" width="1800" height="${BOT - FLOOR}" fill="#080c14"/>`;
+  return s;
+}
+
+// ---------------- BUSSTOP: evening street with a bus shelter ----------------
+function busstop(ox, t) {
+  let s = `<defs><linearGradient id="skyB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1840"/><stop offset="1" stop-color="#4a2a4a"/></linearGradient></defs>
+    <rect x="${ox}" y="${TOP}" width="1200" height="${FLOOR - TOP}" fill="url(#skyB)"/>`;
+  s += skyline(ox, -20, 1240, 1180, t, 'bus', '#1c1a38', 520, 0.25);
+  s += `<rect x="${ox}" y="1180" width="1200" height="120" fill="#2a2838"/><rect x="${ox}" y="1290" width="1200" height="16" fill="#8a8aa0"/>
+    <rect x="${ox}" y="${FLOOR + 6}" width="1200" height="${BOT - FLOOR}" fill="#1a1a24"/>`;
+  for (let i = 0; i < 8; i++) s += `<rect x="${ox + i * 160 + ((-t * 0) % 160)}" y="${FLOOR + 140}" width="90" height="12" fill="#e9e4d4" opacity="0.5"/>`;
+  // shelter
+  s += `<rect x="${ox + 120}" y="760" width="16" height="540" fill="#3a3f52"/><rect x="${ox + 520}" y="760" width="16" height="540" fill="#3a3f52"/>
+    <rect x="${ox + 100}" y="740" width="460" height="30" rx="8" fill="#4a5068"/>
+    <rect x="${ox + 136}" y="780" width="384" height="380" fill="#9fd3ff" opacity="0.08"/>
+    <rect x="${ox + 640}" y="720" width="14" height="580" fill="#3a3f52"/><circle cx="${ox + 647}" cy="700" r="46" fill="#26a69a" stroke="#e9e4d4" stroke-width="8"/>
+    <rect x="${ox + 627}" y="684" width="40" height="30" rx="6" fill="#e9e4d4"/><circle cx="${ox + 635}" cy="718" r="4" fill="#26a69a"/><circle cx="${ox + 659}" cy="718" r="4" fill="#26a69a"/>`;
+  // street lamp
+  s += `<rect x="${ox + 1060}" y="560" width="14" height="740" fill="#2a2e3a"/><ellipse cx="${ox + 1040}" cy="560" rx="40" ry="14" fill="${PAL.goldL}"/>
+    <ellipse cx="${ox + 1040}" cy="700" rx="160" ry="200" fill="${PAL.goldL}" opacity="0.06"/>`;
+  return s;
+}
+
+export const SETS = { room, exchange, whiteboard, outdoor, duo, quad, track, stage, shaft, pit, chartscape, busstop };
 export function drawWorld(world, t) {
   let s = '';
   for (const w of world) s += SETS[w.set](w.x, t, w.opts || {});
-  for (const w of world) if (w.x > 0) s += pillar(w.x);
+  for (const w of world) if (w.x > 0 && w.pillar !== false) s += pillar(w.x);
   return s;
 }

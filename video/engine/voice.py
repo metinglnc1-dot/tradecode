@@ -16,6 +16,7 @@ import soundfile as sf
 
 ROOT = Path(__file__).resolve().parent.parent
 FPS = 30
+VOICE_VERSION = "3"  # bump when TTS post-processing changes so cached voices are rebuilt
 
 
 def norm(s):
@@ -42,12 +43,13 @@ def caption_tokens(caption):
     return [w for w in out if w["text"]]
 
 
-def trim(a, sr, thr=0.012):
+def trim(a, sr, thr=0.006):
+    # generous pre-roll: soft onsets (f, b, g, t) start well below the threshold
     idx = np.where(np.abs(a) > thr)[0]
     if len(idx) == 0:
         return a
-    s = max(0, idx[0] - int(0.015 * sr))
-    e = min(len(a), idx[-1] + int(0.05 * sr))
+    s = max(0, idx[0] - int(0.09 * sr))
+    e = min(len(a), idx[-1] + int(0.06 * sr))
     return a[s:e]
 
 
@@ -126,7 +128,7 @@ def main():
     lines_path, out_dir = Path(sys.argv[1]), Path(sys.argv[2])
     spec = json.loads(lines_path.read_text())
     cfg = spec["voice"]
-    key = hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest()
+    key = hashlib.sha1((VOICE_VERSION + json.dumps(spec, sort_keys=True)).encode()).hexdigest()
     tpath = out_dir / "timings.json"
     if tpath.exists() and json.loads(tpath.read_text()).get("hash") == key and (out_dir / "voice.wav").exists():
         print("voice: cached")
@@ -142,7 +144,10 @@ def main():
     lead, gap = cfg.get("lead", 0.4), cfg.get("gap", 0.22)
     pieces, lines, cursor = [np.zeros(int(lead * sr), np.float32)], [], lead
     for i, ln in enumerate(spec["lines"]):
-        audio, sr_ = tts.create(ln["say"], voice=ln.get("voice", cfg["name"]),
+        # Kokoro swallows the first phoneme of every call ("Four" is heard as "or");
+        # a leading "... " gives it a silent lead-in that trim() removes afterwards.
+        primer = cfg.get("primer", "... ")
+        audio, sr_ = tts.create(primer + ln["say"], voice=ln.get("voice", cfg["name"]),
                                 speed=ln.get("speed", cfg.get("speed", 1.25)), lang="en-us")
         assert sr_ == sr
         audio = trim(np.asarray(audio, np.float32), sr)

@@ -1,0 +1,13 @@
+Same $1,000. Same trades. One of them pays 2.5x more in fees.
+
+Market orders pay the taker fee. Limit orders that rest in the book pay the maker fee. On a typical regular tier that is 0.05% vs 0.02% per side.
+
+At 10x on $1,000 of margin, the position is $10,000. One round trip costs $10 as a taker and $4 as a maker. Twenty trades a day: $200 vs $80.
+
+The catch: a limit order can miss the move. Plan the entry instead of chasing it.
+
+Save this and check which button you press before your next trade 🔖
+
+Illustrative example. Fee tiers vary by exchange and account level. Source: Binance USDⓈ-M futures fee schedule, regular user tier.
+
+#tradingpsychology #cryptoeducation #tradingtips #futurestrading #moneymath

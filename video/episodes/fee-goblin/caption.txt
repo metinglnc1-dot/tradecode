@@ -1,0 +1,11 @@
+Every trade has a tiny passenger: the fee goblin.
+
+About 0.05% when you open, and again when you close. That is 0.1% of your position per round trip. At 10x leverage, that is 1% of your margin. Twenty trades a day? 20% of your margin, every single day.
+
+Fewer trades. Limit orders when you can. Fees are the one loss you control.
+
+Save this before your next scalp 🔖
+
+Illustrative: $1,000 margin at 10x, 0.05% fee per side.
+
+#tradingpsychology #cryptoeducation #tradingtips #scalping #moneymath

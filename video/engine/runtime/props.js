@@ -45,7 +45,7 @@ export const PROPS = {
       const col = p.color || '#fff', key = p.keyColor || PAL.yellow;
       const tw = Math.max(...lines.map((l) => textW(plain(l), size, FONT.title)));
       const cx = W / 2 + iconW / 2;
-      let s = `<g transform="translate(${W / 2} ${cy}) rotate(${f1(rot)}) scale(${f1(a.s * wob * 1000) / 1000}) translate(${-W / 2} ${-cy})" opacity="${textWithOpacity(a.o)}">`;
+      let s = `<g${a.pi < 1 || a.po > 0 ? ' data-anim="1"' : ''} transform="translate(${W / 2} ${cy}) rotate(${f1(rot)}) scale(${f1(a.s * wob * 1000) / 1000}) translate(${-W / 2} ${-cy})" opacity="${textWithOpacity(a.o)}">`;
       if (p.band) s += `<rect x="${f1(cx - tw / 2 - 40)}" y="${f1(y0 - size * 0.62)}" width="${f1(tw + 80)}" height="${f1(lh * (lines.length - 1) + size * 1.12)}" rx="22" fill="${p.band}" stroke="#141414" stroke-width="8"/>`;
       lines.forEach((l, i) => {
         s += `<text data-qa="title" data-g="${p.id}" x="${f1(cx)}" y="${f1(y0 + i * lh + size * 0.36)}" text-anchor="middle" font-family="${FONT.title}" font-size="${f1(size)}" stroke="#141414" stroke-width="${f1(size * 0.14)}" paint-order="stroke" stroke-linejoin="round" filter="url(#shadow)">${tspans(l, col, key)}</text>`;
@@ -69,7 +69,7 @@ export const PROPS = {
       const y = p.y ?? 520, x = 90, w = 900, h = 132;
       const col = { green: PAL.green, red: PAL.red, gold: '#b8923e' }[p.tone || 'green'] || p.tone;
       const ts = fit(p.title, 36, FONT.ui, 800, 620), bs = fit(p.body || '', 29, FONT.ui, 600, 640);
-      return `<g transform="translate(${f1(dx)} 0)" opacity="${textWithOpacity(Math.min(1, a.o * 1.5))}">
+      return `<g${a.pi < 1 || a.po > 0 ? ' data-anim="1"' : ''} transform="translate(${f1(dx)} 0)" opacity="${textWithOpacity(Math.min(1, a.o * 1.5))}">
         <rect x="${x}" y="${y - h / 2}" width="${w}" height="${h}" rx="32" fill="#151b28" fill-opacity="0.97" stroke="#2c3546" stroke-width="3" filter="url(#shadow)"/>
         <g transform="translate(${x + 78} ${y})">${icon(p.icon || 'check', col)}</g>
         <text data-qa="notify" data-g="${p.id}" x="${x + 140}" y="${y - 10}" font-family="${FONT.ui}" font-weight="800" font-size="${f1(ts)}" fill="#fff">${esc(p.title)}</text>
@@ -155,13 +155,70 @@ export const PROPS = {
       for (const l of lines) size = Math.min(size, fit(plain(l), p.size || 44, FONT.hand, 700, w - 36));
       const lh = size * 1.08, y0 = -((lines.length - 1) * lh) / 2 + size * 0.32;
       const c = p.color || '#ffe680';
-      return `<g transform="translate(${f1(p.x)} ${f1(p.y)}) rotate(${f1(rot)}) scale(${f1(sc * 1000) / 1000})" opacity="${textWithOpacity(Math.min(1, a.o * 2))}">
+      return `<g${a.pi < 1 || a.po > 0 ? ' data-anim="1"' : ''} transform="translate(${f1(p.x)} ${f1(p.y)}) rotate(${f1(rot)}) scale(${f1(sc * 1000) / 1000})" opacity="${textWithOpacity(Math.min(1, a.o * 2))}">
         <rect x="${-w / 2 + 6}" y="${-h / 2 + 10}" width="${w}" height="${h}" fill="#000" opacity="0.28"/>
         <path d="M${-w / 2} ${-h / 2} H ${w / 2} V ${h / 2 - 34} L ${w / 2 - 34} ${h / 2} H ${-w / 2} Z" fill="${c}"/>
         <path d="M${w / 2} ${h / 2 - 34} L ${w / 2 - 34} ${h / 2} L ${w / 2 - 30} ${h / 2 - 30} Z" fill="#000" opacity="0.15"/>
         <rect x="-50" y="${-h / 2 - 16}" width="100" height="30" fill="#fff" opacity="0.45" transform="rotate(3)"/>
         ${lines.map((l, i) => `<text data-qa="${p.space === 'screen' ? 'screen' : 'world'}" data-g="${p.id}" x="0" y="${f1(y0 + i * lh)}" text-anchor="middle" font-family="${FONT.hand}" font-weight="700" font-size="${f1(size)}">${tspans(l, p.ink || '#2a2a2a', p.keyColor || '#c62828')}</text>`).join('')}
       </g>`;
+    },
+  },
+
+  // Live number box: value tweens between keys [{at, v}], flashes red when it drops, green when it rises.
+  counter: {
+    space: 'world', layer: 'front',
+    layout(p, sc) { p._keys = p.keys.map((k) => ({ ...k, _t: sc.tl.at(k.at) })).sort((a, b) => a._t - b._t); },
+    sfx: (p) => (p.sfx === false ? [] : [{ t: p._at, name: 'pop', gain: 0.6 }]),
+    draw(p, t) {
+      const a = life(t, p._at, p._until, 0.3, 0.2);
+      if (!a) return '';
+      const K = p._keys;
+      let v = K[0].v, dir = 0, since = 99;
+      for (let i = 0; i < K.length; i++) {
+        if (t >= K[i]._t) {
+          v = K[i].v;
+          const nx = K[i + 1];
+          if (nx && t < nx._t) {
+            const q = (t - K[i]._t) / (nx._t - K[i]._t);
+            v = lerp(K[i].v, nx.v, E[nx.ease || 'out'](q));
+            dir = Math.sign(nx.v - K[i].v); since = 0;
+          } else if (i > 0) { dir = Math.sign(K[i].v - K[i - 1].v); since = t - K[i]._t; }
+        }
+      }
+      const dec = p.decimals ?? 0;
+      const txt = (p.prefix ?? '$') + v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (p.suffix || '');
+      const w = p.w || 400, h = p.sub ? 190 : 160;
+      const flash = clamp(1 - since / 0.8);
+      const col = dir < 0 && flash > 0 ? PAL.red : dir > 0 && flash > 0 ? PAL.green : (p.color || '#fff');
+      const vs = fit(txt, p.size || 84, FONT.ui, 900, w - 40);
+      const shake = dir < 0 && since === 0 ? Math.sin(t * 50) * 3 : 0;
+      return `<g${a.pi < 1 || a.po > 0 ? ' data-anim="1"' : ''} transform="translate(${f1(p.x + shake)} ${f1(p.y)}) scale(${f1(a.s * 1000) / 1000})" opacity="${textWithOpacity(a.o)}">
+        <rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="26" fill="#0f1420" fill-opacity="0.94" stroke="${p.accent || '#334058'}" stroke-width="4" filter="url(#shadow)"/>
+        <text data-qa="world" data-g="${p.id}" x="0" y="${-h / 2 + 44}" text-anchor="middle" font-family="${FONT.ui}" font-weight="800" font-size="28" letter-spacing="3" fill="${p.accent || '#9aa4b5'}">${esc(p.label || '')}</text>
+        <text data-qa="world" data-g="${p.id}" x="0" y="${-h / 2 + 44 + vs * 0.95}" text-anchor="middle" font-family="${FONT.ui}" font-weight="900" font-size="${f1(vs)}" fill="${col}">${esc(txt)}</text>
+        ${p.sub ? `<text data-qa="world" data-g="${p.id}" x="0" y="${h / 2 - 20}" text-anchor="middle" font-family="${FONT.ui}" font-weight="700" font-size="19" letter-spacing="2" fill="#6b768c">${esc(p.sub)}</text>` : ''}
+      </g>`;
+    },
+  },
+
+  // Countdown ring: from `from` down to 1, one step per second, screen space by default. Ticks each second.
+  countdown: {
+    space: 'screen',
+    sfx: (p) => (p.sfx === false ? [] : Array.from({ length: p.from || 5 }, (_, i) => ({ t: p._at + i, name: 'tick', gain: 1.2 }))),
+    draw(p, t) {
+      const n = p.from || 5, end = p._at + n;
+      if (t < p._at || t > end + 0.25) return '';
+      const k = Math.min(n - 1, Math.floor(t - p._at)), frac = (t - p._at) % 1;
+      const num = n - k, r = p.r || 74;
+      const pop = 1 + 0.25 * Math.max(0, 1 - frac / 0.18);
+      const o = t > end ? 1 - (t - end) / 0.25 : 1;
+      const C = 2 * Math.PI * r;
+      return `<g transform="translate(${p.x} ${p.y}) scale(${f1(pop * 100) / 100})" opacity="${f1(o * 100) / 100}">
+        <circle r="${r + 12}" fill="#0f1420" stroke="#141414" stroke-width="8" filter="url(#shadow)"/>
+        <circle r="${r}" fill="none" stroke="#2a3346" stroke-width="12"/>
+        <circle r="${r}" fill="none" stroke="${num <= 2 ? PAL.red : PAL.gold}" stroke-width="12" stroke-dasharray="${f1(C)}" stroke-dashoffset="${f1(C * frac)}" transform="rotate(-90)" stroke-linecap="round"/>
+        <text data-qa="screen" data-g="${p.id}" x="0" y="${f1(r * 0.42)}" text-anchor="middle" font-family="${FONT.title}" font-size="${f1(r * 1.25)}" fill="#fff">${num}</text></g>`;
     },
   },
 
@@ -172,7 +229,7 @@ export const PROPS = {
       const a = life(t, p._at, p._until, 0.25, 0.2);
       if (!a) return '';
       const size = p.size || 22, w = textW(p.text, size, FONT.ui, 700) + size * 0.12 * p.text.length + 36;
-      return `<g transform="translate(${f1(p.x)} ${f1(p.y)}) scale(${f1(a.s * 100) / 100})" opacity="${textWithOpacity(a.o)}">
+      return `<g${a.pi < 1 || a.po > 0 ? ' data-anim="1"' : ''} transform="translate(${f1(p.x)} ${f1(p.y)}) scale(${f1(a.s * 100) / 100})" opacity="${textWithOpacity(a.o)}">
         <rect x="${f1(-w / 2)}" y="${-size * 0.95}" width="${f1(w)}" height="${size * 1.9}" rx="${size * 0.95}" fill="#0d1117" fill-opacity="0.85" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
         <text data-qa="${p.space === 'screen' ? 'screen' : 'world'}" data-g="${p.id}" x="0" y="${f1(size * 0.36)}" text-anchor="middle" font-family="${FONT.ui}" font-weight="700" font-size="${size}" letter-spacing="${f1(size * 0.12)}" fill="#c9d1d9">${esc(p.text)}</text></g>`;
     },
@@ -197,7 +254,7 @@ export const PROPS = {
       const a = life(t, p._at, p._until, 0.3, 0.2);
       if (!a) return '';
       const w = p.w || 520, rh = 64, h = 110 + p._rows.length * rh + (p.tag ? 40 : 0);
-      let s = `<g transform="translate(${f1(p.x + w / 2)} ${f1(p.y + h / 2)}) scale(${f1(a.s * 1000) / 1000}) translate(${-w / 2} ${-h / 2})" opacity="${textWithOpacity(a.o)}">
+      let s = `<g${a.pi < 1 || a.po > 0 ? ' data-anim="1"' : ''} transform="translate(${f1(p.x + w / 2)} ${f1(p.y + h / 2)}) scale(${f1(a.s * 1000) / 1000}) translate(${-w / 2} ${-h / 2})" opacity="${textWithOpacity(a.o)}">
         <rect x="0" y="0" width="${w}" height="${h}" rx="26" fill="#141a26" stroke="#334058" stroke-width="3" filter="url(#shadow)"/>
         <text data-qa="world" data-g="${p.id}" x="28" y="60" font-family="${FONT.ui}" font-weight="800" font-size="34" fill="#fff">${esc(p.title || '')}</text>`;
       if (p.badge) {

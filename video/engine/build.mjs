@@ -104,9 +104,10 @@ try {
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-r', String(FPS),
     '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', mp4]);
   console.log('video:', mp4);
-  // upload copy under 3.5 MB (browser upload limit), two-pass at a bitrate computed from the duration
+  // upload copy under 2.9 MB: fits both the browser upload limit (about 3.8 MB) and the Drive
+  // connector used for the review queue (about 3.1 MB). Two-pass at a bitrate computed from the duration.
   const up = path.join(OUT, `${id}-upload.mp4`);
-  const vk = Math.floor(((3.4e6 * 8) / plan.duration - 96000) * 0.96 / 1000);
+  const vk = Math.floor(((2.9e6 * 8) / plan.duration - 96000) * 0.96 / 1000);
   const log = path.join(OUT, 'x264pass');
   run('ffmpeg', ['-y', '-v', 'error', '-i', mp4, '-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'animation', '-b:v', `${vk}k`, '-pass', '1', '-passlogfile', log, '-an', '-f', 'mp4', '/dev/null']);
   run('ffmpeg', ['-y', '-v', 'error', '-i', mp4, '-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'animation', '-b:v', `${vk}k`, '-pass', '2', '-passlogfile', log, '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', up]);
@@ -122,7 +123,8 @@ try {
   const issues = [];
   const moving = (t) => plan.moving.some(([a, b]) => t >= a - 0.05 && t <= b + 0.05);
   for (const { t, items } of qa) {
-    const vis = items.filter((r) => r.x1 > 0 && r.x0 < 1080 && r.y1 > 0 && r.y0 < 1920 && r.x1 - r.x0 > 2);
+    // elements mid pop-in / slide-out are skipped: a transient overshoot is motion, not a layout bug
+    const vis = items.filter((r) => !r.anim && r.x1 > 0 && r.x0 < 1080 && r.y1 > 0 && r.y0 < 1920 && r.x1 - r.x0 > 2);
     for (const r of vis) {
       const out = r.y0 < SAFE.top || r.y1 > SAFE.bottom || r.x0 < SAFE.left || r.x1 > SAFE.right;
       if (out && !((r.kind === 'world' || r.kind === 'bg') && moving(t))) issues.push({ t, type: 'safe-area', kind: r.kind, text: r.text, box: [r.x0, r.y0, r.x1, r.y1].map(Math.round) });

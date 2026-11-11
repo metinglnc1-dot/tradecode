@@ -29,7 +29,7 @@
     window.__plan = () => scene.plan(); window.__scene = scene;
     window.__qa = () => [...document.querySelectorAll('[data-qa]')].map((el) => {
       const r = el.getBoundingClientRect();
-      return { kind: el.dataset.qa, g: el.dataset.g, text: el.textContent.slice(0, 40), x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
+      return { kind: el.dataset.qa, g: el.dataset.g, anim: !!el.closest('[data-anim]'), text: el.textContent.slice(0, 40), x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
     });
     if (q.has('t')) window.__render(parseFloat(q.get('t')));
     window.__ready = true;

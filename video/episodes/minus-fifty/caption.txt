@@ -1,0 +1,16 @@
+Lose 50%, then gain 50%, and you are still down 25%.
+
+$1,000 drops to $500. A 50% gain brings it back to only $750. Percentages multiply, they don't add.
+
+The gain you need to get back to even is 1 / (1 - loss) - 1:
+-10% needs +11.1%
+-25% needs +33.3%
+-50% needs +100%
+
+Down is the elevator. Up is the stairs.
+
+So what does -80% need? Comment your guess before the reveal at the end 🧮
+
+Pure math, illustrative numbers.
+
+#moneymath #riskmanagement #tradingpsychology #investingtips #compounding
