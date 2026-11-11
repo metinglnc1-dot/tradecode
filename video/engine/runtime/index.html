@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Luckiest Guy'; src: url('/assets/fonts/LuckiestGuy.ttf'); }
+  @font-face { font-family: 'Caveat'; src: url('/assets/fonts/Caveat.ttf'); font-weight: 400 700; }
+  html, body { margin: 0; background: #000; overflow: hidden; width: 1080px; height: 1920px; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+  import { Scene } from './scene.js';
+  const q = new URLSearchParams(location.search);
+  const id = q.get('ep');
+  try {
+    await Promise.all([
+      document.fonts.load("400 100px 'Luckiest Guy'"), document.fonts.load("700 80px 'Caveat'"),
+      document.fonts.load("900 90px 'Inter'"), document.fonts.load("800 30px 'Inter'"), document.fonts.load("600 30px 'Inter'"),
+      document.fonts.load("400 30px 'JetBrains Mono'"), document.fonts.load("700 30px 'JetBrains Mono'"),
+    ]);
+    const ep = (await import(`/episodes/${id}/episode.js?v=${Date.now()}`)).default;
+    const timings = await (await fetch(`/out/${id}/timings.json?v=${Date.now()}`)).json();
+    const scene = new Scene(ep, timings);
+    const stage = document.getElementById('stage');
+    window.__render = (t) => { stage.innerHTML = scene.svg(t); };
+    window.__plan = () => scene.plan(); window.__scene = scene;
+    window.__qa = () => [...document.querySelectorAll('[data-qa]')].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { kind: el.dataset.qa, g: el.dataset.g, text: el.textContent.slice(0, 40), x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
+    });
+    if (q.has('t')) window.__render(parseFloat(q.get('t')));
+    window.__ready = true;
+  } catch (e) {
+    window.__error = String(e && e.stack || e);
+    console.error(e);
+  }
+</script>
+</body>
+</html>
