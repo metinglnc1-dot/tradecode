@@ -104,6 +104,14 @@ try {
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-r', String(FPS),
     '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', mp4]);
   console.log('video:', mp4);
+  // upload copy under 3.5 MB (browser upload limit), two-pass at a bitrate computed from the duration
+  const up = path.join(OUT, `${id}-upload.mp4`);
+  const vk = Math.floor(((3.4e6 * 8) / plan.duration - 96000) * 0.96 / 1000);
+  const log = path.join(OUT, 'x264pass');
+  run('ffmpeg', ['-y', '-v', 'error', '-i', mp4, '-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'animation', '-b:v', `${vk}k`, '-pass', '1', '-passlogfile', log, '-an', '-f', 'mp4', '/dev/null']);
+  run('ffmpeg', ['-y', '-v', 'error', '-i', mp4, '-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'animation', '-b:v', `${vk}k`, '-pass', '2', '-passlogfile', log, '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', up]);
+  for (const f of fs.readdirSync(OUT)) if (f.startsWith('x264pass')) fs.rmSync(path.join(OUT, f));
+  console.log(`upload copy: ${up} (${(fs.statSync(up).size / 1e6).toFixed(2)} MB)`);
 
   // ---------- 5. contact sheet ----------
   const sheetTimes = ep.sheet ? ep.sheet.map(Number) : Array.from({ length: 8 }, (_, i) => +(plan.duration * (0.04 + (i * 0.92) / 7)).toFixed(2));

@@ -8,7 +8,7 @@ node engine/build.mjs fee-goblin --stills 1,5,9  # sadece belirli saniyelerin PN
 node engine/build.mjs fee-goblin --keep-frames   # kareleri silme (ek contact sheet için)
 ```
 
-Çıktılar (`out/<id>/`): `<id>.mp4`, `sheet.png` (8 karelik contact sheet), `sheet_guides.png` (güvenli alan çizgili),
+Çıktılar (`out/<id>/`): `<id>.mp4` (tam kalite), `<id>-upload.mp4` (3,5 MB altı, tarayıcıdan yükleme için), `sheet.png` (8 karelik contact sheet), `sheet_guides.png` (güvenli alan çizgili),
 `qa.json` (otomatik kontrol), `timings.json` (kelime zamanları), `plan.json` (ses efekti planı).
 
 ## Hat (pipeline)
