@@ -12,6 +12,7 @@ const MOODS = {
   smug: { bA: -6, bY: 0, lid: 0.32, smile: 0.85, pup: 1, asym: 14 },
   think: { bA: 0, bY: -6, lid: 0.14, smile: 0.05, pup: 1, asym: 16 },
   determined: { bA: -12, bY: 2, lid: 0.16, smile: 0.55, pup: 1, asym: 0 },
+  confident: { bA: -6, bY: -4, lid: 0, smile: 1.05, pup: 1.05, asym: 0 },
 };
 const LOOKS = {
   cam: [0, 0], left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1],
