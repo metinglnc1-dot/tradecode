@@ -8,6 +8,6 @@ The catch: a limit order can miss the move. Plan the entry instead of chasing it
 
 Save this and check which button you press before your next trade 🔖
 
-Illustrative example. Fee tiers vary by exchange and account level. Source: Binance USDⓈ-M futures fee schedule, regular user tier.
+Illustrative example. Fees vary by exchange, account level and margin asset. Source: Binance USDⓈ-M futures fee schedule, USDT-margined, Regular user, without BNB discount (checked 12 Nov 2026).
 
 #tradingpsychology #cryptoeducation #tradingtips #futurestrading #moneymath
