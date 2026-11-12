@@ -439,7 +439,37 @@ function busstop(ox, t) {
   return s;
 }
 
-export const SETS = { room, exchange, whiteboard, outdoor, duo, quad, track, stage, shaft, pit, chartscape, busstop };
+// ---------------- KITCHEN: morning table, window with sunrise, coffee ----------------
+function kitchen(ox, t) {
+  let s = wall(ox, 1200, '#3a2e3a', '#241c26', 'wKit');
+  for (let y = 300; y < 1100; y += 60) for (let x = 0; x < 1200; x += 60) s += `<rect x="${ox + x + 2}" y="${y + 2}" width="56" height="56" fill="#fff" opacity="0.02"/>`;
+  s += `<defs><linearGradient id="sunK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a7bd8"/><stop offset="0.6" stop-color="#f3a46a"/><stop offset="1" stop-color="#ffd27a"/></linearGradient>
+    <clipPath id="winK"><rect x="${ox + 640}" y="300" width="420" height="380"/></clipPath></defs>
+    <g clip-path="url(#winK)"><rect x="${ox + 640}" y="300" width="420" height="380" fill="url(#sunK)"/>
+    <circle cx="${ox + 850}" cy="${f1(640 - Math.min(1, t / 20) * 30)}" r="70" fill="#fff3c4"/>
+    ${skyline(ox, 630, 440, 690, t, 'kit', '#3a3050', 160, 0.1)}</g>
+    <rect x="${ox + 640}" y="300" width="420" height="380" fill="none" stroke="#e9e4d4" stroke-width="16"/>
+    <line x1="${ox + 850}" x2="${ox + 850}" y1="300" y2="680" stroke="#e9e4d4" stroke-width="10"/>
+    <rect x="${ox + 620}" y="680" width="460" height="20" rx="6" fill="#d8cfbf"/>`;
+  // shelf with jars, wall clock at morning
+  s += `<rect x="${ox + 100}" y="460" width="380" height="14" rx="4" fill="#8d6e4a"/>`;
+  [0, 1, 2, 3].forEach((i) => { s += `<rect x="${ox + 120 + i * 90}" y="${380 + (i % 2) * 10}" width="64" height="${80 - (i % 2) * 10}" rx="12" fill="${['#26a69a', '#E4C471', '#ef5350', '#9fd3ff'][i]}" opacity="0.75"/>`; });
+  s += `<circle cx="${ox + 300}" cy="290" r="62" fill="#f4efe2" stroke="#6b4f3a" stroke-width="10"/>
+    <line x1="${ox + 300}" y1="290" x2="${ox + 300}" y2="248" stroke="#2a2232" stroke-width="7" stroke-linecap="round" transform="rotate(${f1(-120 + t * 3)} ${ox + 300} 290)"/>
+    <line x1="${ox + 300}" y1="290" x2="${ox + 300}" y2="238" stroke="#2a2232" stroke-width="5" stroke-linecap="round" transform="rotate(${f1(t * 36)} ${ox + 300} 290)"/>`;
+  s += floor(ox, 1200, '#2e2420', '#3a2e28');
+  // table with coffee and notebook
+  s += `<rect x="${ox + 520}" y="1060" width="640" height="34" rx="8" fill="#a0764a"/><rect x="${ox + 560}" y="1094" width="26" height="206" fill="#7a5634"/><rect x="${ox + 1100}" y="1094" width="26" height="206" fill="#7a5634"/>
+    <rect x="${ox + 900}" y="1000" width="64" height="62" rx="10" fill="#f4efe2"/><path d="M${ox + 964} 1015 q 26 0 26 20 q 0 20 -26 20" stroke="#f4efe2" stroke-width="9" fill="none"/>
+    <rect x="${ox + 640}" y="1040" width="200" height="22" rx="4" fill="#f4efe2"/><rect x="${ox + 640}" y="1040" width="200" height="6" fill="#26a69a"/>`;
+  for (let i = 0; i < 3; i++) {
+    const ph = (t * 0.7 + i / 3) % 1;
+    s += `<path d="M${ox + 918 + i * 12} ${990 - ph * 90} q 12 -20 0 -40 q -12 -20 0 -40" stroke="#fff" stroke-width="5" fill="none" opacity="${f1((1 - ph) * 0.4 * 100) / 100}" stroke-linecap="round"/>`;
+  }
+  return s;
+}
+
+export const SETS = { room, exchange, whiteboard, outdoor, duo, quad, track, stage, shaft, pit, chartscape, busstop, kitchen };
 export function drawWorld(world, t) {
   let s = '';
   for (const w of world) s += SETS[w.set](w.x, t, w.opts || {});

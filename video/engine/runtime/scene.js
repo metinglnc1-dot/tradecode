@@ -36,7 +36,8 @@ export class Scene {
   // ---------- camera ----------
   camera(t) {
     const c = evalKeys(this.cam, t, ['x', 'y', 'zoom', 'rot'], (v, dt, k) => ({ ...v, zoom: v.zoom * (1 + Math.min(dt, 8) * (k.push ?? 0.012)) }));
-    let x = c.x + 7 * noise(t * 0.35, 'cx'), y = c.y + 6 * noise(t * 0.3, 'cy');
+    // drift is constant on screen: world amount shrinks as the camera zooms in
+    let x = c.x + (7 * noise(t * 0.35, 'cx')) / c.zoom, y = c.y + (6 * noise(t * 0.3, 'cy')) / c.zoom;
     let zoom = c.zoom * (1 + 0.007 * noise(t * 0.25, 'cz'));
     let rot = (c.rot || 0) + 0.35 * noise(t * 0.2, 'cr');
     for (const s of this.shakes) {
