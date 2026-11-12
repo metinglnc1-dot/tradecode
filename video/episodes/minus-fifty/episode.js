@@ -28,9 +28,9 @@ export default {
     { say: 'Down is the elevator. Up is the stairs.',
       caption: 'Down is the *elevator*. Up is the *stairs*.' },
     { say: 'So what does minus eighty need? Comment your guess before the reveal.',
-      caption: 'So what does *-80%* need? *Comment your guess*.', pauseAfter: 0.5 },
-    { say: 'Four hundred percent.',
-      caption: '*+400%*.' },
+      caption: 'So what does *-80%* need? *Comment your guess*.', pauseAfter: 3.4 }, // thinking gap with a 3-2-1 countdown
+    { say: 'Four hundred percent. Protect the downside first.',
+      caption: '*+400%*. Protect the *downside* first.' },
   ],
 
   world: [
@@ -68,7 +68,7 @@ export default {
       { at: 0, mood: 'excited' }, { at: '1:lose', mood: 'shocked' }, { at: '1:then', mood: 'determined' },
       { at: '1:back', mood: 'happy' }, { at: '2', mood: 'sad' }, { at: '3', mood: 'think' }, { at: '4', mood: 'determined' },
       { at: '6', mood: 'neutral' }, { at: '6:elevator', mood: 'shocked' }, { at: '6:stairs', mood: 'worried' },
-      { at: '7', mood: 'think' }, { at: '8', mood: 'excited' },
+      { at: '7', mood: 'think' }, { at: '8', mood: 'shocked' }, { at: '8:protect', mood: 'determined' },
     ],
     looks: [
       { at: 0, look: 'cam' }, { at: '1:lose', look: 'up' }, { at: '1:then', look: 'upright' }, { at: '1:back', look: 'up' },
@@ -83,9 +83,10 @@ export default {
       { at: '5', do: 'write', dur: 1.6 },
       { at: '4:+100%', do: 'tilt', dur: 0.8, deg: -12 },
       { at: '6:stairs', do: 'point', dur: 1.0 },
-      { at: '7:comment', do: 'wave', dur: 1.4 },
+      { at: '7:comment', do: 'wave', dur: 1.2 },
+      { at: '7>+0.2', do: 'tilt', dur: 2.8, deg: 10 },
       { at: '8', do: 'jump', h: 120 },
-      { at: '8+0.4', do: 'cheer', dur: 1.4 },
+      { at: '8:protect', do: 'point', dur: 1.2 },
     ],
   }],
 
@@ -141,6 +142,8 @@ export default {
     { type: 'title', at: '7', until: '7:comment-0.05', text: '*-80%* NEEDS *?*', keyColor: '#ef5350', y: 300, size: 130 },
     { type: 'title', at: '7:comment', until: '8-0.05', text: '*COMMENT* YOUR GUESS', y: 300, size: 110, icon: 'comment' },
     { type: 'title', at: '8', text: '*+400%*', keyColor: '#26a69a', y: 300, size: 150, sfx: 'ding' },
+    // thinking gap: silent voice, ticking 3-2-1, bull thinking
+    { type: 'countdown', at: '7>+0.15', from: 3, x: 540, y: 760, r: 86 },
   ],
 
   sfx: [

@@ -9,7 +9,9 @@ The gain you need to get back to even is 1 / (1 - loss) - 1:
 
 Down is the elevator. Up is the stairs.
 
-So what does -80% need? Comment your guess before the reveal at the end 🧮
+So what does -80% need? You get three seconds to guess before the answer. Comment yours 🧮
+
+Protect the downside first.
 
 Pure math, illustrative numbers.
 
