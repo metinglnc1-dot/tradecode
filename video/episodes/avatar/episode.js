@@ -4,7 +4,7 @@ const BG = {
   navy: ['#1d2742', '#0b0f19', '#E4C471'],
   green: ['#164a45', '#0b1a19', '#E4C471'],
 };
-const pick = (globalThis.location && new URLSearchParams(location.search).get('bg')) || 'navy';
+const pick = (globalThis.location && new URLSearchParams(location.search).get('bg')) || 'green';
 const [c0, c1, ring] = BG[pick] || BG.navy;
 
 export default {
@@ -15,8 +15,9 @@ export default {
   world: [],
   camera: [{ at: 0, x: 0, y: 628, zoom: 1, push: 0 }],
   actors: [{
-    kind: 'bull', id: 'bull',
-    path: [{ at: 0, x: 0, y: 1300, face: 1, scale: 1.6 }],
+    kind: 'bull', id: 'bull', steadyLook: true,
+    // face 0 = straight to camera (no 3/4 turn)
+    path: [{ at: 0, x: 0, y: 1300, face: 0, scale: 1.6 }],
     moods: [{ at: 0, mood: 'confident' }],
     looks: [{ at: 0, look: 'cam' }],
   }],

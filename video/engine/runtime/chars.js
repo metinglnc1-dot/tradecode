@@ -29,13 +29,13 @@ function moodAt(keys, t) {
   for (const f in b) o[f] = lerp(a[f], b[f], p);
   return o;
 }
-function lookAt(keys, t, seed) {
+function lookAt(keys, t, seed, amp = 1) {
   let cur = null, prev = null;
   for (const k of keys) if (k._t <= t) { prev = cur; cur = k; }
   const v = (k) => (k ? (Array.isArray(k.look) ? k.look : LOOKS[k.look] || [0, 0]) : [0, 0]);
   const a = v(prev), b = v(cur);
   const p = cur ? E.out(clamp((t - cur._t) / 0.18)) : 1;
-  return [lerp(a[0], b[0], p) + 0.18 * noise(t * 0.9, seed + 'lx'), lerp(a[1], b[1], p) + 0.14 * noise(t * 0.8, seed + 'ly')];
+  return [lerp(a[0], b[0], p) + 0.18 * amp * noise(t * 0.9, seed + 'lx'), lerp(a[1], b[1], p) + 0.14 * amp * noise(t * 0.8, seed + 'ly')];
 }
 // action weight with soft edges
 function actW(a, t) {
@@ -174,7 +174,8 @@ export class Bull extends Actor {
     if (!vis) return '';
     const st = this.state(t);
     const m = moodAt(this.moods, t);
-    const look = lookAt(this.looks, t, this.id);
+    // steadyLook: no eye wander (stills such as the avatar)
+    const look = lookAt(this.looks, t, this.id, this.cfg.steadyLook ? 0 : 1);
     const arms = this.arms(t, st);
     const id = this.id;
     const fx = 16 * st.face;
