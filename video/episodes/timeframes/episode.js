@@ -92,10 +92,10 @@ function chart(t, sc) {
 // timeframe pills on screen
 const pills = (t, sc) => {
   const at = (a) => sc.tl.at(a);
-  const act = t >= at('4:zoom') ? 2 : t >= at('3:zoom') ? 1 : 0;
+  const act = t >= at('5:zoomed>') ? 0 : t >= at('4:zoom') ? 2 : t >= at('3:zoom') ? 1 : 0;
   return ['1m', '15m', '4h'].map((l, i) => {
     const x = 540 + (i - 1) * 190, on = i === act;
-    return `<g transform="translate(${x} 425) scale(${on ? 1.12 : 1})"><rect x="-80" y="-36" width="160" height="72" rx="36" fill="${on ? '#E4C471' : '#141a26'}" stroke="${on ? '#141414' : '#3a4157'}" stroke-width="5"/>
+    return `<g transform="translate(${x} 448) scale(${on ? 1.12 : 1})"><rect x="-80" y="-36" width="160" height="72" rx="36" fill="${on ? '#E4C471' : '#141a26'}" stroke="${on ? '#141414' : '#3a4157'}" stroke-width="5"/>
       <text data-qa="screen" data-g="pills" x="0" y="15" text-anchor="middle" font-family="Inter" font-weight="900" font-size="40" fill="${on ? '#141414' : '#8d97a8'}">${l}</text></g>`;
   }).join('');
 };

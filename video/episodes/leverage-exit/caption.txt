@@ -1,0 +1,11 @@
+Same entry. Five traders. Different leverage. Leverage doesn't change your idea. It changes how much room it gets.
+
+Roughly, the distance to liquidation is 1 divided by leverage: about 20% at 5x, 10% at 10x, 4% at 25x, 2% at 50x and 1% at 100x. Fees and maintenance margin make it even closer.
+
+Size the position from your stop, not from the leverage slider. Example: $1,000 account, 1% risk = $10, 2% stop distance, so a $500 position.
+
+Our position size and liquidation calculator is in the link in bio 🔗
+
+Illustrative, isolated margin, before fees.
+
+#leverage #riskmanagement #cryptotrading #futurestrading #positionsizing
