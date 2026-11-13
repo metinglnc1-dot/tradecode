@@ -1,0 +1,19 @@
+Don't ask Claude if you should enter. Give it your plan and ask it to break it.
+
+Copy these 5 prompts:
+
+1. "Here is my trade plan: market, timeframe, entry, stop, target, account size, risk percent. Act as a skeptical risk manager and give me 3 reasons this trade fails."
+
+2. "Tell me the exact price that proves my idea wrong. Do not tell me whether to buy or sell."
+
+3. "Check my position size against my risk percent and my stop distance. Show the math."
+
+4. "Summarise today's news for this market in 3 bullet points and mark anything scheduled in the next 24 hours."
+
+5. "Here are my last 20 trades. Find the one habit that costs me the most money. Be blunt."
+
+Save this and run prompt 1 before your next trade 🔖 More BTC prompts in the BTC AI Analysis Prompt Pack, link in bio.
+
+AI for traders, Part 3 of 5. Claude is made by Anthropic. Not affiliated.
+
+#claude #aiprompts #tradingtools #riskmanagement #ai

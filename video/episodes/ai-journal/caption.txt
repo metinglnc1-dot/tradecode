@@ -1,0 +1,14 @@
+I gave Claude my trading journal. It handed back one red card.
+
+Your journal needs 6 columns: date, time, setup, risk, result, and how you felt.
+
+Then paste your last 50 trades with this prompt:
+"Here are my last 50 trades with date, time, setup, risk and result. Find the 3 patterns that cost me the most money. Be blunt. Then suggest one rule to test for the next 2 weeks."
+
+The loop: keep the journal, ask for the patterns, change one rule, review in 2 weeks.
+
+Save this for your weekly review 🔖 Need a place to keep the journal? Trading Journal App, link in bio.
+
+The red card in this video is an illustrative example. AI for traders, Part 4 of 5. Claude is made by Anthropic. Not affiliated.
+
+#claude #tradingjournal #tradingpsychology #aiprompts #ai
