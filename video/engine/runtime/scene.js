@@ -111,8 +111,8 @@ export class Scene {
       <rect width="${W}" height="${H}" fill="url(#vign)"/>
       ${layer('screen')}
       ${this.captions(t)}
-      <rect x="0" y="1908" width="${W}" height="12" fill="#fff" opacity="0.14"/>
-      <rect x="0" y="1908" width="${f1(W * prog)}" height="12" fill="${PAL.gold}"/>
+      ${this.ep.progress === false ? '' : `<rect x="0" y="1908" width="${W}" height="12" fill="#fff" opacity="0.14"/>
+      <rect x="0" y="1908" width="${f1(W * prog)}" height="12" fill="${PAL.gold}"/>`}
     </svg>`;
   }
 

@@ -1,0 +1,77 @@
+MetrivaStudio Pinterest pins, batch 2026-11-13
+Each entry: file | board | link | title | description | alt text
+Etsy links: https://www.etsy.com/listing/<id>. "shop" = shop home page.
+
+PACK A  CHEAT SHEETS (1000x1500)
+pin-cheatsheet-4614080727-1.jpg | Trading Cheat Sheets | listing 4614080727
+  Title: 5 Candlestick Patterns Cheat Sheet
+  Description: Hammer, shooting star, engulfing, doji and inside bar, each in one line. Save it for your next chart session. One candle without context is not a signal.
+  Alt: Cheat sheet with five candlestick patterns and a one-line meaning for each.
+pin-cheatsheet-4557390194-2.jpg | Trading Cheat Sheets | listing 4557390194
+  Title: ICT Killzones Cheat Sheet (New York Time)
+  Description: Asia, London and New York sessions on one page. Mark them on your chart instead of memorising them.
+  Alt: Timeline of the Asia, London and New York killzones in New York time.
+  NOTE: hours are the common ICT times from the idea doc (20:00-00:00, 02:00-05:00, 07:00-10:00 NY). They could not be checked against the indicator's default settings (Etsy page blocks automated reading). Check before publishing.
+pin-cheatsheet-4565674941-3.jpg | Trading Cheat Sheets | listing 4565674941
+  Title: Liquidity Sweep Cheat Sheet
+  Description: Why price takes the stops under equal lows and sometimes turns. Not every sweep turns: wait for confirmation and keep the stop beyond the structure.
+  Alt: Illustrative chart of equal lows, stops below them and a sweep candle, with four short notes.
+pin-cheatsheet-4604297195-4.jpg | Trading Cheat Sheets | listing 4604297195
+  Title: Position Size Formula Cheat Sheet
+  Description: Size equals risk divided by stop distance. Same $50 risk, two stop distances, two very different positions (illustrative).
+  Alt: Position size formula with an illustrative $5,000 account example.
+pin-cheatsheet-4604297195-5.jpg | Trading Cheat Sheets | listing 4604297195
+  Title: Loss and Recovery Table
+  Description: Down 10% needs +11.1% to get back. Down 50% needs +100%. Down 80% needs +400%. Protect the account first.
+  Alt: Table of losses and the gains needed to recover them.
+
+PACK B  RULE CARDS (1000x1500)
+pin-rules-4604297195-1.jpg | Trading Rules | listing 4604297195
+  Title: 5 Day Trading Rules If I Had to Restart
+  Description: Risk 1% per trade, stop after 2 losses in a day, one setup, journal every trade, no trade outside the plan.
+  Alt: Five day trading rules on a dark card with the MetrivaStudio bull.
+pin-rules-4614080727-2.jpg | Trading Rules | listing 4614080727
+  Title: What to Do After a Losing Trade
+  Description: Never size up after a loss. Two losses and the day is over. Close the screen, take a walk, read the journal tomorrow.
+  Alt: Five trading psychology rules for the moment after a loss.
+pin-rules-4604297195-3.jpg | Trading Rules | listing 4604297195
+  Title: 5 Risk Rules for Traders
+  Description: Decide where you are wrong first, size by risk and stop, size for the losing streak, stop beyond the structure, same risk every trade.
+  Alt: Five risk management rules on a dark card.
+
+PACK C  QUOTE CARDS (1000x1500, our own sentences)
+pin-quote-shop-1.jpg | Trading Psychology Quotes | shop
+  Title: The Setup Comes to the Patient
+  Description: A trading psychology reminder for red days. Save it.
+  Alt: Quote card: The setup comes to the patient.
+pin-quote-shop-2.jpg | Trading Psychology Quotes | shop
+  Title: Protect the Account First
+  Description: Before profit targets, protect the account. A trading psychology reminder.
+  Alt: Quote card: Protect the account first.
+pin-quote-shop-3.jpg | Trading Psychology Quotes | shop
+  Title: Decide Where You're Wrong Before You Enter
+  Description: Your stop is decided before the entry, not after. A trading psychology reminder.
+  Alt: Quote card: Decide where you're wrong before you enter.
+
+PACK D  PHONE WALLPAPERS (1080x1920)
+pin-wallpaper-shop-1.jpg | Trading Wallpapers | shop
+  Title: Trading Wallpaper: Protect the Account First
+  Description: Dark phone wallpaper with one rule to see every time you unlock.
+  Alt: Dark phone wallpaper with the gold bull and the words Protect the account first.
+pin-wallpaper-shop-2.jpg | Trading Wallpapers | shop
+  Title: Trading Wallpaper: The Setup Comes to the Patient
+  Description: Green phone wallpaper with a patience reminder for traders.
+  Alt: Green phone wallpaper with the gold bull and the words The setup comes to the patient.
+pin-wallpaper-shop-3.jpg | Trading Wallpapers | shop
+  Title: Trading Wallpaper: Size for the Streak
+  Description: Dark red phone wallpaper. Size your risk for the losing streak, not for the win rate.
+  Alt: Dark red phone wallpaper with the gold bull and the words Size for the streak.
+
+PACK F  VIDEO PINS (same videos, gold title band for the first 3 seconds)
+pin-video-shop-1.mp4 | Trading Tips | shop | Title: Trading Fees Explained (fee goblin)
+pin-video-shop-2.mp4 | Trading Tips | shop | Title: Same $1,000, Two Scalpers
+pin-video-shop-3.mp4 | Trading Psychology | shop | Title: Who Survives 5 Losses in a Row?
+pin-video-shop-4.mp4 | Trading Tips | shop | Title: -50% Then +50%: Are You Even?
+pin-video-shop-5.mp4 | Trading Psychology | shop | Title: Would You Enter Here?
+
+PACK E (Trading Desk Setup, 10 pins) is not made: its brief was in an earlier message I do not have.
