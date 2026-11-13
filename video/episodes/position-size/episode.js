@@ -78,6 +78,7 @@ export default {
     path: [
       { at: 0, x: TAIL + 930, y: 1300, face: -1, scale: 0.8 },
       { at: '2', x: ROOM + 300, face: 1, scale: 0.85, move: 0.8 },
+      { at: '3', x: ROOM + 260, scale: 0.58, move: 0.5 },
       { at: '5+0.1', x: WB + 970, face: -1, scale: 0.82, move: 0.8 },
       { at: '7+0.1', x: END + 930, face: -1, scale: 0.8, move: 0.8 },
     ],
