@@ -222,6 +222,20 @@ export const PROPS = {
     },
   },
 
+  // Series badge in the top corner, e.g. "AI FOR TRADERS  PART 2/5". Screen space, always on.
+  badge: {
+    space: 'screen',
+    draw(p, t) {
+      const a = life(t, p._at, p._until, 0.3, 0.2);
+      if (!a) return '';
+      const size = p.size || 24, w = textW(p.text, size, FONT.ui, 800) + size * 0.1 * p.text.length + 40;
+      const x = p.x ?? 40 + w / 2, y = p.y ?? 190;
+      return `<g transform="translate(${f1(x)} ${y}) scale(${f1(a.s * 100) / 100})" opacity="${textWithOpacity(a.o)}">
+        <rect x="${f1(-w / 2)}" y="${-size}" width="${f1(w)}" height="${size * 2}" rx="${size}" fill="${p.color || PAL.gold}" stroke="#141414" stroke-width="4"/>
+        <text data-qa="screen" data-g="${p.id}" x="0" y="${f1(size * 0.36)}" text-anchor="middle" font-family="${FONT.ui}" font-weight="800" font-size="${size}" letter-spacing="${f1(size * 0.1)}" fill="#141414">${esc(p.text)}</text></g>`;
+    },
+  },
+
   // Small pill label such as ILLUSTRATIVE.
   tag: {
     space: 'world', layer: 'front',

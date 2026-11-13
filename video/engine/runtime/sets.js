@@ -469,7 +469,25 @@ function kitchen(ox, t) {
   return s;
 }
 
-export const SETS = { room, exchange, whiteboard, outdoor, duo, quad, track, stage, shaft, pit, chartscape, busstop, kitchen };
+// ---------------- COURT: wood panels, judge bench, scales ----------------
+function court(ox, t) {
+  let s = wall(ox, 1200, '#3a2618', '#24170e', 'wCourt');
+  for (let i = 0; i < 12; i++) s += `<rect x="${ox + i * 100 + 8}" y="200" width="84" height="760" rx="8" fill="#000" opacity="0.12"/>`;
+  s += `<rect x="${ox}" y="960" width="1200" height="20" fill="#5a3a22"/>`;
+  // scales of justice on the wall
+  const sw = Math.sin(t * 1.4) * 6;
+  s += `<g transform="translate(${ox + 600} 300)"><rect x="-6" y="0" width="12" height="190" fill="${PAL.gold}"/><circle r="16" fill="${PAL.gold}"/>
+    <g transform="rotate(${f1(sw)})"><rect x="-170" y="-6" width="340" height="12" rx="6" fill="${PAL.gold}"/>
+    <path d="M-170 0 L -210 110 L -130 110 Z M170 0 L 130 110 L 210 110 Z" fill="none" stroke="${PAL.gold}" stroke-width="5"/>
+    <path d="M-225 110 Q -170 150 -115 110 Z M115 110 Q 170 150 225 110 Z" fill="${PAL.gold}"/></g></g>`;
+  s += floor(ox, 1200, '#2a1a10', '#3a2618');
+  // judge bench
+  s += `<rect x="${ox + 180}" y="1000" width="840" height="300" fill="#4a2e1a"/><rect x="${ox + 160}" y="980" width="880" height="34" rx="6" fill="#6b4226"/>
+    ${[0, 1, 2, 3].map((i) => `<rect x="${ox + 220 + i * 200}" y="1050" width="160" height="200" rx="10" fill="#000" opacity="0.15"/>`).join('')}`;
+  return s;
+}
+
+export const SETS = { room, exchange, whiteboard, outdoor, duo, quad, track, stage, shaft, pit, chartscape, busstop, kitchen, court };
 export function drawWorld(world, t) {
   let s = '';
   for (const w of world) s += SETS[w.set](w.x, t, w.opts || {});

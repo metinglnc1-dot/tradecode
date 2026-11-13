@@ -1,0 +1,13 @@
+Everyone is posting about the free Day Trader skill pack for Claude. Here is what it actually does, and what it cannot do.
+
+It is an open source project on GitHub (search: day-trader-skill), MIT license, made by an independent developer. Not by Anthropic.
+
+11 skills: chart scanner, news monitor, entry timer, exit planner, risk manager, budget manager, a time machine that replays a setup 10,000 times, price alerts, earnings reader, Congress trade tracker and an order sender.
+
+What it cannot do: predict the price or promise a profit. It cannot place an order on its own. Paper trading is the default.
+
+Which job would you hand over first? Comment the number 👇
+
+AI for traders, Part 1 of 5. Claude is made by Anthropic. Not affiliated.
+
+#claude #aitrading #tradingtools #daytrading #ai
