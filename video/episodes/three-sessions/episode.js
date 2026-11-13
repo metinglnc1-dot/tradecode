@@ -146,8 +146,8 @@ export default {
 
   props: [
     { type: 'custom', layer: 'back', at: 0, until: '2+0.6', draw: (t) => clocks(t) },
-    { type: 'custom', layer: 'back', at: '7', draw: (t) => clocks(t) },
     { type: 'custom', layer: 'back', at: '1>', draw: (t, sc) => day(t, sc) },
+    { type: 'custom', layer: 'back', at: '7', draw: (t) => clocks(t) },
     { type: 'title', at: 0.02, until: '2-0.05', text: '3 SESSIONS\n*3 PERSONALITIES*', y: 330, sfx: 'bell' },
     { type: 'tag', space: 'screen', at: '2', until: '5+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE PRICE PATH  NEW YORK TIME' },
     { type: 'title', at: '2', until: '3-0.05', text: '*ASIA*  CALM', y: 300, size: 120, keyColor: '#9fb4ff' },
