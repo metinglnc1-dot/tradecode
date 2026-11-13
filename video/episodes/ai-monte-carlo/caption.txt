@@ -1,0 +1,22 @@
+This strategy makes money. So why do so many of its paths fall into a hole?
+
+I asked Claude to simulate it 10,000 times. Illustrative rules: 40% wins at +2R, losses at -1R. That is +0.2R per trade on average.
+
+In 100 trades, the chance of at least one losing streak of:
+5 in a row: about 98%
+8 in a row: about 49%
+10 in a row: about 20%
+
+What 8 losses in a row do to the account:
+1% risk per trade: 0.99⁸ = 0.92, about -8%
+10% risk per trade: 0.9⁸ = 0.43, about -57%
+
+Size your risk for the streak, not for the win rate.
+
+What did you guess before the reveal? Comment it 👇
+
+Prompt: "Simulate 10,000 random orders of 100 trades with a 40 percent win rate, plus 2R wins and minus 1R losses. Show the chance of 5, 8 and 10 losses in a row, and the worst drawdown at 1 percent and 10 percent risk per trade."
+
+Odds checked with our own 200,000-run simulation. The strategy is illustrative. AI for traders, Part 5 of 5. Claude is made by Anthropic. Not affiliated.
+
+#claude #riskmanagement #montecarlo #tradingpsychology #ai
