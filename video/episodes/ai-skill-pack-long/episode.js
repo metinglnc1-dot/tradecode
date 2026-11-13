@@ -153,6 +153,10 @@ export default {
     { type: 'tag', at: '11:paper', until: '12+0.3', x: OUT + 600, y: 790, size: 20, text: 'PAPER TRADING IS THE DEFAULT' },
 
     // CTA
+    { type: 'custom', layer: 'back', at: '12', until: '16+0.3', draw: (t, sc, p) => {
+      const o = Math.min(1, (t - p._at) / 0.3, Math.max(0, (p._until - t) / 0.2));
+      return `<rect x="${EX + 100}" y="270" width="1000" height="560" rx="30" fill="#0f1420" fill-opacity="${(0.96 * o).toFixed(2)}" stroke="#E4C471" stroke-opacity="${o.toFixed(2)}" stroke-width="5"/>`;
+    } },
     { type: 'rules', at: '12', until: '16+0.3', x: EX + 140, y: 360, w: 920, title: 'BEFORE YOU *USE IT*', titleSize: 64, gap: 100, size: 50,
       items: [
         { at: '12:read', text: 'Read the *code*', icon: 'check', color: '#26a69a' },
