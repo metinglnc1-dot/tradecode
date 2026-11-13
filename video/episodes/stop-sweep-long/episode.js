@@ -31,7 +31,7 @@ const chartScene = (t, sc) => {
   const eq = Math.min(1, Math.max(0, (t - at('2:equal')) / 0.4));
   const tg = (a) => Math.min(1, Math.max(0, (t - at(a)) / 0.35));
   s += `<line x1="${CH + 40}" x2="${CH + 40 + (BX(6) - CH + 80) * eq}" y1="1050" y2="1050" stroke="#E4C471" stroke-width="5" stroke-dasharray="16 10"/>`;
-  if (eq > 0) s += `<g opacity="${eq.toFixed(2)}"><text data-qa="world" data-g="eq" x="${CH + 75}" y="1092" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">EQUAL</text><text data-qa="world" data-g="eq" x="${CH + 75}" y="1126" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">LOWS</text></g>`;
+  if (eq > 0 && t < at('5')) s += `<g opacity="${eq.toFixed(2)}"><text data-qa="world" data-g="eq" x="${CH + 75}" y="1092" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">EQUAL</text><text data-qa="world" data-g="eq" x="${CH + 75}" y="1126" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">LOWS</text></g>`;
   // the stops
   const fs = Math.min(1, Math.max(0, (t - at('2:most')) / 0.5));
   FLAGS.forEach(([x, y], k) => {
@@ -64,13 +64,13 @@ const chartScene = (t, sc) => {
     <text data-qa="world" data-g="eqh" x="${BX(6) + 60}" y="700" text-anchor="end" font-family="Inter" font-weight="900" font-size="32" fill="#9fb4ff">EQUAL HIGHS</text></g>`;
   const cb = tg('7:close') * Math.max(0, Math.min(1, (at('8') - t) / 0.3 + 1));
   if (t >= at('7:close') && t < at('9')) s += `<g opacity="${cb.toFixed(2)}"><rect x="${BX(7) - 46}" y="960" width="92" height="70" rx="10" fill="none" stroke="#E4C471" stroke-width="6"/>
-    <text data-qa="world" data-g="cb" x="${BX(7)}" y="1260" text-anchor="middle" font-family="Inter" font-weight="900" font-size="30" fill="#E4C471">CLOSE BACK INSIDE</text></g>`;
+</g>`;
   const bos = tg('8:break');
   if (bos > 0 && t < at('9')) s += `<g opacity="${bos.toFixed(2)}"><line x1="${BX(6) - 30}" x2="${BX(8) + 40}" y1="980" y2="980" stroke="#26a69a" stroke-width="6"/>
     <text data-qa="world" data-g="bos" x="${BX(8) + 50}" y="968" font-family="Inter" font-weight="900" font-size="30" fill="#26a69a">BREAK</text></g>`;
   const sb = tg('9:beyond');
   if (sb > 0) s += `<g opacity="${sb.toFixed(2)}"><line x1="${BX(5)}" x2="${BX(9) + 40}" y1="1185" y2="1185" stroke="#ef5350" stroke-width="6" stroke-dasharray="18 10"/>
-    <text data-qa="world" data-g="sb" x="${BX(5)}" y="1235" font-family="Inter" font-weight="900" font-size="30" fill="#ef5350">STOP BEYOND THE SWEEP</text></g>`;
+</g>`;
   return s;
 };
 
@@ -88,7 +88,7 @@ const cliff = (t) => {
 
 export default {
   id: 'stop-sweep-long',
-  voice: { name: 'am_fenrir', speed: 1.15, lead: 0.4, gap: 0.22 },
+  voice: { name: 'am_fenrir', speed: 1.1, lead: 0.4, gap: 0.22 },
   tail: 1.9,
   narrator: 'bull',
 
@@ -135,7 +135,7 @@ export default {
   camera: [
     { at: 0, x: CL + 560, y: 953, zoom: 0.95, push: 0.01 },
     { at: '2', x: CH + 600, y: 953, zoom: 0.95, move: 0.8, push: 0.003 },
-    { at: '3', x: CH + 560, y: 900, zoom: 0.95, move: 0.6, push: 0 },
+    { at: '3', x: CH + 560, y: 953, zoom: 0.95, move: 0.6, push: 0 },
     { at: '5', x: CH + 640, y: 953, zoom: 0.95, move: 0.6, push: 0.003 },
     { at: '7', x: CH + 700, y: 976, zoom: 1.02, move: 0.6, push: 0 },
     { at: '9', x: CH + 640, y: 970, zoom: 1.0, move: 0.6, push: 0 },
@@ -177,6 +177,8 @@ export default {
     { type: 'title', at: '5:sweep', until: '6-0.05', text: 'THE *SWEEP*', y: 300, size: 120 },
     { type: 'title', at: '6', until: '7-0.05', text: 'OR IT *KEEPS GOING*', y: 300, size: 110, keyColor: '#ef5350' },
     { type: 'title', at: '7', until: '9-0.05', text: 'WAIT FOR\n*CONFIRMATION*', y: 330 },
+    { type: 'tag', space: 'screen', at: '7:close', until: '9-0.05', x: 540, y: 500, size: 26, text: '1. CLOSE BACK INSIDE THE RANGE' },
+    { type: 'tag', space: 'screen', at: '8:break', until: '9-0.05', x: 540, y: 560, size: 26, text: '2. BREAK OF THE LAST SMALL HIGH' },
     { type: 'title', at: '9', until: '10-0.05', text: 'STOP *BEYOND*\nTHE SWEEP', y: 330 },
 
     // whiteboard
