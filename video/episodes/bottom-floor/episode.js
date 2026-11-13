@@ -12,7 +12,7 @@ const carA = (t, sc) => {
   const up0 = sc.tl.at('2:all'), up1 = sc.tl.at('2>') + 0.3, pop = sc.tl.at('5:drops');
   if (t < pop) return 1300 - 1900 * smooth((t - up0) / (up1 - up0)) + Math.sin(t * 2) * 8 * (t > up1);
   const q = Math.min(1, (t - pop) / 0.9);
-  return -600 + (2050 + 600) * q * q;
+  return -600 + (1900 + 600) * q * q;
 };
 const carB = (t, sc) => {
   const a = sc.tl.at('3:risks'), b = sc.tl.at('6:still');
@@ -28,18 +28,18 @@ const building = (t, sc) => {
     s += `<rect x="${BLD + 60}" y="${y}" width="1080" height="10" fill="${below ? '#3a2a2a' : '#2b3a5e'}"/>`;
   }
   s += `<rect x="${BLD - 700}" y="1300" width="2600" height="14" fill="#56704b"/>
-    <text data-qa="world" data-g="gf" x="${BLD + 600}" y="1290" text-anchor="middle" font-family="Inter" font-weight="900" font-size="44" fill="#E4C471" opacity="0.8">START  $1,000</text>
+    <text data-qa="bg" data-g="gf" x="${BLD + 600}" y="1290" text-anchor="middle" font-family="Inter" font-weight="900" font-size="44" fill="#E4C471" opacity="0.8">START  $1,000</text>
     <rect x="${BLD + 60}" y="1314" width="1080" height="1400" fill="#140d10" opacity="0.6"/>
-    <text data-qa="world" data-g="bf" x="${BLD + 600}" y="2290" text-anchor="middle" font-family="Inter" font-weight="900" font-size="48" fill="#ef5350">BOTTOM FLOOR</text>`;
+    <text data-qa="world" data-g="bf" x="${BLD + 600}" y="1700" text-anchor="middle" font-family="Inter" font-weight="900" font-size="48" fill="#ef5350">BOTTOM FLOOR</text>`;
   // glass shafts
   [SA, SB].forEach((x) => { s += `<rect x="${x - 150}" y="-1500" width="300" height="3900" fill="#9fd3ff" opacity="0.07" stroke="#9fd3ff" stroke-opacity="0.25" stroke-width="6"/>`; });
   // the cars
   const doors = t >= sc.tl.at('5') ? Math.min(1, (t - sc.tl.at('5')) / 0.5) : 0;
-  const car = (x, y, label, col) => `<g transform="translate(${x} ${y.toFixed(1)})">
+  const car = (x, y, label, col) => `<g transform="translate(${x} ${y.toFixed(1)}) scale(1.4)">
     <rect x="-130" y="-300" width="260" height="300" rx="14" fill="#2b3346" stroke="#E4C471" stroke-width="8"/>
     <rect x="-118" y="-288" width="${(118 - 118 * doors).toFixed(1)}" height="276" fill="#56607a"/><rect x="${(118 * doors).toFixed(1)}" y="-288" width="${(118 - 118 * doors).toFixed(1)}" height="276" fill="#56607a"/>
     <circle cx="0" cy="-150" r="${(80 * doors).toFixed(1)}" fill="${col}" opacity="0.9"/>
-    <text data-qa="world" data-g="car${label}" x="0" y="-110" text-anchor="middle" font-family="Luckiest Guy" font-size="${(120 * Math.max(0.01, doors)).toFixed(1)}" fill="#fff">${label}</text>
+    <text data-qa="bg" data-g="car${label}" x="0" y="-110" text-anchor="middle" font-family="Luckiest Guy" font-size="${(120 * Math.max(0.01, doors)).toFixed(1)}" fill="#fff">${label}</text>
     <rect x="-60" y="-360" width="120" height="60" rx="10" fill="${col}" stroke="#141414" stroke-width="5"/>
     <text data-qa="world" data-g="tag${label}" x="0" y="-314" text-anchor="middle" font-family="Luckiest Guy" font-size="48" fill="#fff">${label}</text></g>`;
   const ya = carA(t, sc), yb = carB(t, sc), pop = sc.tl.at('5:drops');
@@ -50,7 +50,7 @@ const building = (t, sc) => {
     s += pq > 0
       ? `<g opacity="${(1 - pq).toFixed(2)}">${Array.from({ length: 10 }, (_, k) => { const a = (k / 10) * Math.PI * 2; return `<line x1="${(SA + Math.cos(a) * r * 0.6).toFixed(1)}" y1="${(ya - 760 + Math.sin(a) * r * 0.6).toFixed(1)}" x2="${(SA + Math.cos(a) * r * 1.2).toFixed(1)}" y2="${(ya - 760 + Math.sin(a) * r * 1.2).toFixed(1)}" stroke="#E4C471" stroke-width="14" stroke-linecap="round"/>`; }).join('')}</g>`
       : `<line x1="${SA}" y1="${(ya - 360).toFixed(1)}" x2="${SA}" y2="${(ya - 600).toFixed(1)}" stroke="#d9d2c3" stroke-width="6"/>
-        <circle cx="${SA}" cy="${(ya - 760).toFixed(1)}" r="${r}" fill="#E4C471" stroke="#7a5c1c" stroke-width="12"/>
+        <circle cx="${SA}" cy="${(ya - 760).toFixed(1)}" r="${r * 1.3}" fill="#E4C471" stroke="#7a5c1c" stroke-width="12"/>
         <circle cx="${SA}" cy="${(ya - 760).toFixed(1)}" r="${r - 40}" fill="none" stroke="#7a5c1c" stroke-width="8"/>
         <text data-qa="world" data-g="coin" x="${SA}" y="${(ya - 720).toFixed(1)}" text-anchor="middle" font-family="Luckiest Guy" font-size="120" fill="#7a5c1c">1</text>`;
   }
@@ -105,8 +105,8 @@ export default {
   camera: [
     { at: 0, x: OUT + 600, y: 953, zoom: 0.95, push: 0.008 },
     { at: '2', x: BLD + 600, y: 300, zoom: 0.55, move: 0.9 },
-    { at: '4', x: BLD + 600, y: 500, zoom: 0.55, move: 0.6 },
-    { at: '5:drops', x: BLD + 600, y: 1100, zoom: 0.55, move: 0.9 },
+    { at: '4', x: BLD + 600, y: 300, zoom: 0.55, move: 0.6 },
+    { at: '5:drops', x: BLD + 600, y: 1500, zoom: 0.5, move: 0.9 },
     { at: '7+0.1', x: WB + 610, y: 956, zoom: 0.95, move: 0.8, push: 0.002 },
   ],
 
@@ -132,7 +132,7 @@ export default {
     { type: 'custom', space: 'screen', at: '2', until: '7+0.1', draw: (t, sc, p) => {
       const o = Math.min(1, (t - p._at) / 0.3) * Math.max(0, Math.min(1, (p._until - t) / 0.2));
       return `<g opacity="${o.toFixed(2)}">${money(t, sc, 290, 'A  ALL IN', [['2', 1000], ['5:drops', 1000], ['5:drops+0.6', 200]], '#ef5350')}
-        ${money(t, sc, 790, 'B  1% RISK', [['2', 1000], ['3:risks', 1000], ['6:still', 904]], '#26a69a')}</g>`;
+        ${money(t, sc, 790, 'B  1% RISK', [['2', 1000], ['6', 1000], ['6:still', 904]], '#26a69a')}</g>`;
     } },
     { type: 'title', at: '4', until: '5-0.05', text: 'WHERE DO THEY\n*END UP?*', y: 760, icon: 'comment' },
     { type: 'countdown', at: '4>+0.15', from: 3, x: 540, y: 1000, r: 80 },
@@ -143,7 +143,7 @@ export default {
     { id: 'w1', type: 'write', at: '7', dur: 0.7, x: WB + 120, y: 450, size: 60, maxW: 790, keyColor: '#d84341', text: 'A  $200 → $1,000 = *+400%*' },
     { id: 'w2', type: 'write', at: '7:get', dur: 0.7, x: WB + 120, y: 580, size: 60, maxW: 790, keyColor: '#1f8f84', text: 'B  0.99¹⁰ = 0.904, *$904*' },
     { type: 'draw', around: 'w1', sub: '+400%', at: '7:back', shape: 'circle' },
-    { type: 'title', at: '8', text: 'EYES ON THE\n*BOTTOM FLOOR*', y: 330, sfx: 'ding' },
+    { type: 'title', at: '8', text: 'EYES ON THE *BOTTOM FLOOR*', y: 300, size: 96, sfx: 'ding' },
   ],
 
   sfx: [

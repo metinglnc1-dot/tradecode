@@ -22,11 +22,11 @@ const office = (t, sc) => {
   let s = `<rect x="${OFF - 500}" y="-900" width="2300" height="2200" fill="#161d30"/>
     ${Array.from({ length: 24 }, (_, i) => `<rect x="${OFF - 500 + i * 100}" y="-900" width="50" height="2200" fill="#fff" opacity="0.02"/>`).join('')}
     <rect x="${OFF - 500}" y="1300" width="2300" height="1400" fill="#121520"/><rect x="${OFF - 500}" y="1282" width="2300" height="22" fill="#0b0d14"/>`;
-  const allOn = t >= sc.tl.at('12');
+  const allOn = t >= sc.tl.at('16');
   JOBS.forEach(([job, at], i) => {
     const [x, y] = CELL(i);
     const on = allOn || t >= sc.tl.at(at);
-    const k = on ? Math.min(1, (t - (allOn ? sc.tl.at('12') : sc.tl.at(at))) / 0.3) : 0;
+    const k = on ? Math.min(1, (t - (allOn ? sc.tl.at('16') : sc.tl.at(at))) / 0.3) : 0;
     const bob = Math.sin(t * 3 + i) * (on ? 6 : 2), hop = on && k < 1 ? -24 * Math.sin(Math.PI * k) : 0;
     const body = on ? '#5c7cfa' : '#3a4157', eye = on ? '#fff' : '#6b768c';
     s += `<g transform="translate(${x} ${y}) scale(1.25)">
@@ -46,7 +46,7 @@ const office = (t, sc) => {
 
 export default {
   id: 'ai-skill-pack-long',
-  voice: { name: 'am_fenrir', speed: 1.25, lead: 0.4, gap: 0.22 },
+  voice: { name: 'am_fenrir', speed: 1.15, lead: 0.4, gap: 0.22 },
   tail: 1.9,
   narrator: 'bull',
 
@@ -74,6 +74,14 @@ export default {
       caption: 'What it *cannot* do: *predict* the price, or *promise* a profit.' },
     { say: 'It cannot place an order on its own. Paper trading is the default.',
       caption: 'It cannot place an order *on its own*. *Paper trading* is the default.', pauseAfter: 0.35 },
+    { say: 'Before you use it, read the code. It is open, so you can see what each skill does.',
+      caption: 'Before you use it, *read the code*. It is open, so you can see what each skill does.', pauseAfter: 0.25 },
+    { say: 'Test it on paper for a few weeks before real money.',
+      caption: 'Test it on *paper* for a few weeks before *real money*.', pauseAfter: 0.25 },
+    { say: 'Remember, a confident answer is not the same as a right answer.',
+      caption: 'Remember, a *confident* answer is not the same as a *right* answer.', pauseAfter: 0.25 },
+    { say: 'Keep your own risk rules. The tool should follow them, not replace them.',
+      caption: 'Keep your own *risk rules*. The tool should *follow* them, not *replace* them.', pauseAfter: 0.35 },
     { say: 'Which job would you hand over first? Comment the number.',
       caption: 'Which job would you hand over first? *Comment the number*.' },
   ],
@@ -88,7 +96,8 @@ export default {
     { at: '2+0.15', x: EX + 600, y: 941, zoom: 0.92, move: 0.8, push: 0 },
     { at: '4+0.15', x: OFF + 610, y: 880, zoom: 0.92, move: 0.8, push: 0 },
     { at: '10+0.15', x: OUT + 600, y: 953, zoom: 0.95, move: 0.8, push: 0.004 },
-    { at: '12+0.15', x: OFF + 610, y: 880, zoom: 0.92, move: 0.8, push: 0 },
+    { at: '12+0.15', x: EX + 600, y: 941, zoom: 0.92, move: 0.8, push: 0 },
+    { at: '16+0.15', x: OFF + 610, y: 880, zoom: 0.92, move: 0.8, push: 0 },
   ],
 
   actors: [{
@@ -98,13 +107,14 @@ export default {
       { at: '2+0.15', x: EX + 980, face: -1, scale: 0.82, move: 0.8 },
       { at: '4+0.15', x: OFF + 190, face: 1, scale: 0.7, move: 0.8 },
       { at: '10+0.15', x: OUT + 820, face: -1, scale: 0.92, move: 0.8 },
-      { at: '12+0.15', x: OFF + 190, face: 1, scale: 0.7, move: 0.8 },
+      { at: '12+0.15', x: EX + 980, face: -1, scale: 0.82, move: 0.8 },
+      { at: '16+0.15', x: OFF + 190, face: 1, scale: 0.7, move: 0.8 },
     ],
     moods: [
       { at: 0, mood: 'excited' }, { at: '2', mood: 'think' }, { at: '4', mood: 'happy' }, { at: '10', mood: 'determined' },
-      { at: '11:paper', mood: 'smug' }, { at: '12', mood: 'happy' },
+      { at: '11:paper', mood: 'smug' }, { at: '12', mood: 'think' }, { at: '15', mood: 'determined' }, { at: '16', mood: 'happy' },
     ],
-    looks: [{ at: 0, look: 'right' }, { at: '1:here', look: 'cam' }, { at: '4', look: 'upright' }, { at: '10', look: 'cam' }, { at: '12', look: 'upright' }, { at: '12:comment', look: 'cam' }],
+    looks: [{ at: 0, look: 'right' }, { at: '1:here', look: 'cam' }, { at: '4', look: 'upright' }, { at: '10', look: 'cam' }, { at: '12', look: 'cam' }, { at: '16', look: 'upright' }, { at: '16:comment', look: 'cam' }],
     actions: [
       { at: '1:posting', do: 'point', dur: 1.0 },
       { at: '2:not', do: 'shake', dur: 0.5 },
@@ -113,7 +123,8 @@ export default {
       { at: '10:predict', do: 'shrug', dur: 1.0 },
       { at: '11:paper', do: 'nod', dur: 0.6 },
       { at: '9:approve', do: 'nod', dur: 0.6 },
-      { at: '12:comment', do: 'wave', dur: 2.0 },
+      { at: '13:test', do: 'point', dur: 1.0 }, { at: '14:confident', do: 'shake', dur: 0.5 }, { at: '15:rules', do: 'nod', dur: 0.6 },
+      { at: '16:comment', do: 'wave', dur: 2.0 },
     ],
   }],
 
@@ -142,8 +153,15 @@ export default {
     { type: 'tag', at: '11:paper', until: '12+0.3', x: OUT + 600, y: 790, size: 20, text: 'PAPER TRADING IS THE DEFAULT' },
 
     // CTA
-    { type: 'title', at: '12:comment', text: '*COMMENT* THE NUMBER', y: 300, size: 104, icon: 'comment', sfx: 'ding' },
-    { type: 'tag', space: 'screen', at: '12', x: 540, y: 1163, size: 16, text: 'CLAUDE IS MADE BY ANTHROPIC  NOT AFFILIATED' },
+    { type: 'rules', at: '12', until: '16+0.3', x: EX + 140, y: 360, w: 920, title: 'BEFORE YOU *USE IT*', titleSize: 64, gap: 100, size: 50,
+      items: [
+        { at: '12:read', text: 'Read the *code*', icon: 'check', color: '#26a69a' },
+        { at: '13:paper', text: 'Test on *paper* first', icon: 'check', color: '#26a69a' },
+        { at: '14:confident', text: 'Confident is not *right*', icon: 'alert', color: '#ef5350' },
+        { at: '15:rules', text: 'Your *risk rules* lead', icon: 'check', color: '#26a69a' },
+      ] },
+    { type: 'title', at: '16:comment', text: '*COMMENT* THE NUMBER', y: 300, size: 104, icon: 'comment', sfx: 'ding' },
+    { type: 'tag', space: 'screen', at: '16', x: 540, y: 1163, size: 16, text: 'CLAUDE IS MADE BY ANTHROPIC  NOT AFFILIATED' },
   ],
 
   sfx: [

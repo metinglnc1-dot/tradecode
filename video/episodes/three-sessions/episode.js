@@ -53,12 +53,15 @@ const day = (t, sc) => {
     ${Array.from({ length: 22 }, (_, i) => `<line x1="${CH - 300}" x2="${CH + 2700}" y1="${-900 + i * 100}" y2="${-900 + i * 100}" stroke="#1d2636" stroke-width="3"/>`).join('')}
     <rect x="${CH - 300}" y="1300" width="3000" height="1400" fill="#080c14"/>`;
   ZONES.forEach((z, k) => {
-    const on = Math.min(1, Math.max(0, (t - sc.tl.at(`${k + 2}`)) / 0.4));
+    const on = Math.min(1, Math.max(0, (t - sc.tl.at(['2', '3', '4'][k])) / 0.4));
     const x0 = HX(z.h0), x1 = HX(z.h1);
+    const nxAt = k < 2 ? ['2', '3', '4'][k + 1] : '5';
+    const nx = Math.min(1, Math.max(0, (t - sc.tl.at(nxAt) + 0.3) / 0.3));
+    const lab = on * (1 - nx);
     s += `<rect x="${x0}" y="560" width="${x1 - x0}" height="700" fill="${z.col}" opacity="${(0.06 + 0.12 * on).toFixed(2)}"/>
       <rect x="${x0}" y="560" width="${x1 - x0}" height="10" fill="${z.col}" opacity="${(0.3 + 0.7 * on).toFixed(2)}"/>
-      <text data-qa="world" data-g="z${k}" x="${(x0 + x1) / 2}" y="630" text-anchor="middle" font-family="Luckiest Guy" font-size="54" fill="${z.col}" opacity="${(0.4 + 0.6 * on).toFixed(2)}">${z.name}</text>
-      <text data-qa="world" data-g="z${k}h" x="${(x0 + x1) / 2}" y="1240" text-anchor="middle" font-family="Inter" font-weight="900" font-size="30" fill="${z.col}" opacity="${(0.4 + 0.6 * on).toFixed(2)}">${z.label}</text>`;
+      ${lab > 0 ? `<text data-qa="world" data-g="z${k}" x="${(x0 + x1) / 2}" y="640" text-anchor="middle" font-family="Luckiest Guy" font-size="54" fill="${z.col}" opacity="${lab.toFixed(2)}">${z.name}</text>
+      <text data-qa="world" data-g="z${k}h" x="${(x0 + x1) / 2}" y="690" text-anchor="middle" font-family="Inter" font-weight="900" font-size="30" fill="${z.col}" opacity="${lab.toFixed(2)}">${z.label}</text>` : ''}`;
   });
   // the path draws itself as the camera moves along the day
   const a = sc.tl.at('2'), b = sc.tl.at('4>');
@@ -144,7 +147,7 @@ export default {
   props: [
     { type: 'custom', layer: 'back', at: 0, until: '2+0.6', draw: (t) => clocks(t) },
     { type: 'custom', layer: 'back', at: '7', draw: (t) => clocks(t) },
-    { type: 'custom', layer: 'back', at: '1>', until: '5+0.6', draw: (t, sc) => day(t, sc) },
+    { type: 'custom', layer: 'back', at: '1>', draw: (t, sc) => day(t, sc) },
     { type: 'title', at: 0.02, until: '2-0.05', text: '3 SESSIONS\n*3 PERSONALITIES*', y: 330, sfx: 'bell' },
     { type: 'tag', space: 'screen', at: '2', until: '5+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE PRICE PATH  NEW YORK TIME' },
     { type: 'title', at: '2', until: '3-0.05', text: '*ASIA*  CALM', y: 300, size: 120, keyColor: '#9fb4ff' },

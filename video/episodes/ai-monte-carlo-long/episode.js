@@ -168,7 +168,7 @@ export default {
     { type: 'write', at: '9:5', x: WB + 120, y: 680, size: 64, keyColor: '#d84341', text: '5% risk:  0.95⁸, *-34%*' },
     { id: 'm4', type: 'write', at: '9:10', x: WB + 120, y: 800, size: 64, keyColor: '#d84341', text: '10% risk:  0.9⁸, *-57%*' },
     { type: 'draw', around: 'm4', sub: '-57%', at: '9:57', shape: 'circle' },
-    { type: 'title', at: '10', until: '11-0.05', text: 'RISK DECIDES\nTHE *HOLE*', y: 330 },
+    { type: 'title', at: '10', until: '11-0.05', text: 'RISK DECIDES THE *HOLE*', y: 300, size: 96 },
     // your own numbers
     { type: 'custom', space: 'screen', at: '11', until: '12-0.02', draw: (t, sc, p) => promptCard(t, p, PROMPT2, 'YOUR PROMPT', 'mp2') },
     // CTA

@@ -95,9 +95,9 @@ export default {
 
   props: [
     { type: 'custom', layer: 'back', at: 0, until: '2+0.6', draw: (t) => shop(t, null, TAIL, 0.3) },
-    { type: 'custom', layer: 'back', at: '6', draw: (t, sc) => shop(t, sc, END, sc.tl.at('7')) },
+    { type: 'custom', layer: 'back', at: '6', draw: (t, sc) => shop(t, sc, END, sc.tl.at('7:save')) },
     { type: 'title', at: 0.02, until: '2-0.05', text: 'SAME *RISK*\nDIFFERENT *SIZE*', y: 330, sfx: 'bell' },
-    { type: 'tag', space: 'screen', at: 0.3, until: '7+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE  $5,000 ACCOUNT  1% RISK = $50' },
+    { type: 'tag', space: 'screen', at: 0.3, until: '7', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE  $5,000 ACCOUNT  1% RISK = $50' },
     { type: 'title', at: '2:risk', until: '3-0.05', text: '*1%* OF $5,000\n= *$50*', y: 330 },
     { type: 'custom', space: 'screen', at: '3', until: '5+0.1', draw: (t, sc) => ladder(t, sc) },
     { type: 'title', at: '5', until: '6-0.05', text: 'BOTH LOSE *$50*', y: 300, size: 116 },

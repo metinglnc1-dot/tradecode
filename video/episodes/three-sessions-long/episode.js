@@ -55,10 +55,13 @@ const day = (t, sc) => {
   ZONES.forEach((z, k) => {
     const on = Math.min(1, Math.max(0, (t - sc.tl.at(['3', '5', '7'][k])) / 0.4));
     const x0 = HX(z.h0), x1 = HX(z.h1);
+    const nxAt = k < 2 ? ['3', '5', '7'][k + 1] : '9';
+    const nx = Math.min(1, Math.max(0, (t - sc.tl.at(nxAt) + 0.3) / 0.3));
+    const lab = on * (1 - nx);
     s += `<rect x="${x0}" y="560" width="${x1 - x0}" height="700" fill="${z.col}" opacity="${(0.06 + 0.12 * on).toFixed(2)}"/>
       <rect x="${x0}" y="560" width="${x1 - x0}" height="10" fill="${z.col}" opacity="${(0.3 + 0.7 * on).toFixed(2)}"/>
-      <text data-qa="world" data-g="z${k}" x="${(x0 + x1) / 2}" y="630" text-anchor="middle" font-family="Luckiest Guy" font-size="54" fill="${z.col}" opacity="${(0.4 + 0.6 * on).toFixed(2)}">${z.name}</text>
-      <text data-qa="world" data-g="z${k}h" x="${(x0 + x1) / 2}" y="1240" text-anchor="middle" font-family="Inter" font-weight="900" font-size="30" fill="${z.col}" opacity="${(0.4 + 0.6 * on).toFixed(2)}">${z.label}</text>`;
+      ${lab > 0 ? `<text data-qa="world" data-g="z${k}" x="${(x0 + x1) / 2}" y="640" text-anchor="middle" font-family="Luckiest Guy" font-size="54" fill="${z.col}" opacity="${lab.toFixed(2)}">${z.name}</text>
+      <text data-qa="world" data-g="z${k}h" x="${(x0 + x1) / 2}" y="690" text-anchor="middle" font-family="Inter" font-weight="900" font-size="30" fill="${z.col}" opacity="${lab.toFixed(2)}">${z.label}</text>` : ''}`;
   });
   // the path draws itself as the camera moves along the day
   const a = sc.tl.at('2'), b = sc.tl.at('7>');
@@ -84,7 +87,7 @@ const pick = (t, at) => {
 
 export default {
   id: 'three-sessions-long',
-  voice: { name: 'am_fenrir', speed: 1.25, lead: 0.4, gap: 0.22 },
+  voice: { name: 'am_fenrir', speed: 1.15, lead: 0.4, gap: 0.22 },
   tail: 1.9,
   narrator: 'bull',
 
@@ -109,6 +112,12 @@ export default {
       caption: 'Common *killzones* in New York time: *Asia 20 to 24*, *London 2 to 5*, *New York 7 to 10*.', pauseAfter: 0.3 },
     { say: 'Check your own settings. Daylight saving can shift them.',
       caption: 'Check your own *settings*. *Daylight saving* can shift them.', pauseAfter: 0.3 },
+    { say: 'Set your chart clock to New York time, or convert the hours.',
+      caption: 'Set your *chart clock* to *New York time*, or convert the hours.', pauseAfter: 0.3 },
+    { say: 'Then watch what price does inside each box for two weeks before you trade it.',
+      caption: 'Then *watch* what price does inside each box for *2 weeks* before you trade it.', pauseAfter: 0.3 },
+    { say: 'Many traders pick one session and skip the rest. Less screen time, fewer random trades.',
+      caption: 'Many traders pick *one session* and skip the rest. Less *screen time*, fewer *random trades*.', pauseAfter: 0.3 },
     { say: 'Do not memorise the hours. Draw them on your chart.',
       caption: 'Do not memorise the hours. *Draw them* on your chart.', pauseAfter: 0.3 },
     { say: 'Asia, London or New York? Comment your session.',
@@ -124,7 +133,7 @@ export default {
     { at: '5', x: (HX(26) + HX(29)) / 2, y: 953, zoom: 0.95, move: 0.9, push: 0 },
     { at: '7', x: (HX(31) + HX(34)) / 2, y: 900, zoom: 0.95, move: 0.9, push: 0 },
     { at: '9+0.1', x: WB + 610, y: 956, zoom: 0.95, move: 0.9, push: 0.002 },
-    { at: '12+0.1', x: CLK + 600, y: 953, zoom: 0.95, move: 0.9, push: 0.004 },
+    { at: '15+0.1', x: CLK + 600, y: 953, zoom: 0.95, move: 0.9, push: 0.004 },
   ],
 
   actors: [{
@@ -136,29 +145,29 @@ export default {
       { at: '5', x: (HX(26) + HX(29)) / 2 + 280, move: 0.9 },
       { at: '7', x: (HX(31) + HX(34)) / 2 + 300, move: 0.9 },
       { at: '9+0.1', x: WB + 970, scale: 0.82, move: 0.9 },
-      { at: '12+0.1', x: CLK + 600, face: 1, scale: 0.85, move: 0.9 },
+      { at: '15+0.1', x: CLK + 600, face: 1, scale: 0.85, move: 0.9 },
     ],
     moods: [
       { at: 0, mood: 'think' }, { at: '3', mood: 'neutral' }, { at: '5', mood: 'excited' }, { at: '6', mood: 'think' }, { at: '7', mood: 'shocked' },
-      { at: '9', mood: 'determined' }, { at: '12', mood: 'happy' },
+      { at: '9', mood: 'determined' }, { at: '15', mood: 'happy' },
     ],
-    looks: [{ at: 0, look: 'up' }, { at: '1:which', look: 'cam' }, { at: '2', look: 'left' }, { at: '10', look: 'cam' }, { at: '11', look: 'left' }, { at: '12', look: 'cam' }],
+    looks: [{ at: 0, look: 'up' }, { at: '1:which', look: 'cam' }, { at: '2', look: 'left' }, { at: '10', look: 'cam' }, { at: '14', look: 'left' }, { at: '15', look: 'cam' }],
     actions: [
       { at: '1:personalities', do: 'point', dur: 1.0 },
       { at: '3:calm', do: 'nod', dur: 0.6 },
       { at: '4:high', do: 'point', dur: 1.2 },
       { at: '5:fast', do: 'shake', dur: 0.5 },
       { at: '7:crowd', do: 'sweat', dur: 1.6 },
-      { at: '9', do: 'write', dur: 3.6 },
+      { at: '9', do: 'write', dur: 3.6 }, { at: '12', do: 'write', dur: 3.0 },
       { at: '10:settings', do: 'point', dur: 1.0 },
-      { at: '12:comment', do: 'wave', dur: 2.0 },
+      { at: '15:comment', do: 'wave', dur: 2.0 },
     ],
   }],
 
   props: [
     { type: 'custom', layer: 'back', at: 0, until: '2+0.6', draw: (t) => clocks(t) },
-    { type: 'custom', layer: 'back', at: '12', draw: (t) => clocks(t) },
-    { type: 'custom', layer: 'back', at: '1>', until: '9+0.6', draw: (t, sc) => day(t, sc) },
+    { type: 'custom', layer: 'back', at: '15', draw: (t) => clocks(t) },
+    { type: 'custom', layer: 'back', at: '1>', draw: (t, sc) => day(t, sc) },
     { type: 'title', at: 0.02, until: '2-0.05', text: '3 SESSIONS\n*3 PERSONALITIES*', y: 330, sfx: 'bell' },
     { type: 'tag', space: 'screen', at: '2', until: '9+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE PRICE PATH  NEW YORK TIME' },
     { type: 'title', at: '2', until: '3-0.05', text: 'ONE *TRADING DAY*', y: 300, size: 116 },
@@ -169,17 +178,21 @@ export default {
     { type: 'title', at: '7', until: '9-0.05', text: '*NEW YORK*  CROWD', y: 300, size: 110 },
 
     // whiteboard: the hours
-    { id: 'w1', type: 'write', at: '9:asia', dur: 0.6, x: WB + 120, y: 460, size: 60, maxW: 790, keyColor: '#3b5bdb', text: '*Asia*  20:00 to 00:00' },
-    { id: 'w2', type: 'write', at: '9:london', dur: 0.6, x: WB + 120, y: 580, size: 60, maxW: 790, keyColor: '#1f8f84', text: '*London*  02:00 to 05:00' },
-    { id: 'w3', type: 'write', at: '9:new#2', dur: 0.6, x: WB + 120, y: 700, size: 60, maxW: 790, keyColor: '#9c7a2e', text: '*New York*  07:00 to 10:00' },
-    { id: 'w5', type: 'write', at: '10:daylight', dur: 0.6, x: WB + 120, y: 820, size: 50, maxW: 790, keyColor: '#d84341', text: 'Check *daylight saving*' },
-    { id: 'w4', type: 'write', at: '11:draw', dur: 0.6, x: WB + 120, y: 920, size: 50, maxW: 790, color: '#5b6680', text: 'Draw them on the chart.' },
-    { type: 'tag', at: '9', until: '12+0.3', x: WB + 500, y: 1010, size: 19, text: 'COMMON ICT TIMES  CHECK YOUR OWN SETTINGS' },
+    { id: 'w1', type: 'write', at: '9:asia', until: '12', dur: 0.6, x: WB + 120, y: 460, size: 60, maxW: 790, keyColor: '#3b5bdb', text: '*Asia*  20:00 to 00:00' },
+    { id: 'w2', type: 'write', at: '9:london', until: '12', dur: 0.6, x: WB + 120, y: 580, size: 60, maxW: 790, keyColor: '#1f8f84', text: '*London*  02:00 to 05:00' },
+    { id: 'w3', type: 'write', at: '9:new#2', until: '12', dur: 0.6, x: WB + 120, y: 700, size: 60, maxW: 790, keyColor: '#9c7a2e', text: '*New York*  07:00 to 10:00' },
+    { id: 'w5', type: 'write', at: '10:daylight', until: '12', dur: 0.6, x: WB + 120, y: 820, size: 50, maxW: 790, keyColor: '#d84341', text: 'Check *daylight saving*' },
+    { id: 'w6', type: 'write', at: '11:chart', until: '12', dur: 0.6, x: WB + 120, y: 920, size: 50, maxW: 790, keyColor: '#1f8f84', text: 'Chart clock: *NY time*' },
+    { id: 'w7', type: 'write', at: '12:watch', dur: 0.6, x: WB + 120, y: 460, size: 60, maxW: 790, keyColor: '#1f8f84', text: '*Watch* each box' },
+    { id: 'w8', type: 'write', at: '12:weeks', dur: 0.6, x: WB + 120, y: 570, size: 60, maxW: 790, keyColor: '#1f8f84', text: 'for *2 weeks* first' },
+    { id: 'w9', type: 'write', at: '13:one', dur: 0.6, x: WB + 120, y: 700, size: 60, maxW: 790, keyColor: '#9c7a2e', text: '*One* session is enough' },
+    { id: 'w4', type: 'write', at: '14:draw', dur: 0.6, x: WB + 120, y: 830, size: 50, maxW: 790, color: '#5b6680', text: 'Draw them on the chart.' },
+    { type: 'tag', at: '9', until: '15+0.3', x: WB + 500, y: 1010, size: 19, text: 'COMMON ICT TIMES  CHECK YOUR OWN SETTINGS' },
 
     // CTA
-    { type: 'custom', space: 'screen', at: '12', draw: (t, sc, p) => pick(t, p._at) },
-    { type: 'title', at: '12:comment', text: '*COMMENT* YOUR SESSION', y: 300, size: 100, icon: 'comment', sfx: 'ding' },
+    { type: 'custom', space: 'screen', at: '15', draw: (t, sc, p) => pick(t, p._at) },
+    { type: 'title', at: '15:comment', text: '*COMMENT* YOUR SESSION', y: 300, size: 100, icon: 'comment', sfx: 'ding' },
   ],
 
-  sfx: [{ at: '3', name: 'pop', gain: 0.7 }, { at: '5', name: 'whoosh', gain: 0.6, dur: 0.5 }, { at: '7', name: 'thud', gain: 0.7 }, { at: '12', name: 'pop', gain: 0.8 }],
+  sfx: [{ at: '3', name: 'pop', gain: 0.7 }, { at: '5', name: 'whoosh', gain: 0.6, dur: 0.5 }, { at: '7', name: 'thud', gain: 0.7 }, { at: '15', name: 'pop', gain: 0.8 }],
 };

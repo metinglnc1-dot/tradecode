@@ -30,17 +30,17 @@ const chartScene = (t, sc) => {
   // equal lows line
   const eq = Math.min(1, Math.max(0, (t - at('2:equal')) / 0.4));
   const tg = (a) => Math.min(1, Math.max(0, (t - at(a)) / 0.35));
-  s += `<line x1="${BX(1) - 40}" x2="${BX(1) - 40 + (BX(6) - BX(1) + 120) * eq}" y1="1050" y2="1050" stroke="#E4C471" stroke-width="5" stroke-dasharray="16 10"/>`;
-  if (eq > 0) s += `<text data-qa="world" data-g="eq" x="${BX(0) - 30}" y="1180" font-family="Inter" font-weight="900" font-size="34" fill="#E4C471" opacity="${eq.toFixed(2)}">EQUAL LOWS</text>`;
+  s += `<line x1="${CH + 40}" x2="${CH + 40 + (BX(6) - CH + 80) * eq}" y1="1050" y2="1050" stroke="#E4C471" stroke-width="5" stroke-dasharray="16 10"/>`;
+  if (eq > 0) s += `<g opacity="${eq.toFixed(2)}"><text data-qa="world" data-g="eq" x="${CH + 40}" y="1092" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">EQUAL</text><text data-qa="world" data-g="eq" x="${CH + 40}" y="1126" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">LOWS</text></g>`;
   // the stops
-  const fs = Math.min(1, Math.max(0, (t - at('2:everyone')) / 0.5));
+  const fs = Math.min(1, Math.max(0, (t - at('2:most')) / 0.5));
   FLAGS.forEach(([x, y], k) => {
     const q = Math.min(1, Math.max(0, fs * 9 - k));
     if (q <= 0) return;
     const gone = Math.max(0, (t - sweep - k * 0.03) / 0.6);
     s += `<g transform="translate(0 ${(gone * gone * 300).toFixed(1)}) rotate(${(gone * 60).toFixed(1)} ${x} ${y})" opacity="${Math.max(0, 1 - gone).toFixed(2)}">${flag(x, y)}</g>`;
   });
-  if (fs > 0 && t < sweep + 0.3) s += `<text data-qa="world" data-g="stops" x="${BX(3) + 20}" y="1250" text-anchor="middle" font-family="Inter" font-weight="900" font-size="34" fill="${Rd}" opacity="${Math.min(fs, Math.max(0, (sweep + 0.3 - t) / 0.3)).toFixed(2)}">STOPS</text>`;
+  if (fs > 0 && t < sweep + 0.3) s += `<text data-qa="world" data-g="stops" x="${BX(3) + 20}" y="1168" text-anchor="middle" font-family="Inter" font-weight="900" font-size="34" fill="${Rd}" opacity="${Math.min(fs, Math.max(0, (sweep + 0.3 - t) / 0.3)).toFixed(2)}">STOPS</text>`;
   // the sweep candle grows down then closes back up
   if (t >= sweep - 0.4) {
     const q = Math.min(1, (t - sweep + 0.4) / 0.5), back = Math.min(1, Math.max(0, (t - sweep - 0.2) / 0.4));
@@ -88,7 +88,7 @@ const cliff = (t) => {
 
 export default {
   id: 'stop-sweep-long',
-  voice: { name: 'am_fenrir', speed: 1.25, lead: 0.4, gap: 0.22 },
+  voice: { name: 'am_fenrir', speed: 1.15, lead: 0.4, gap: 0.22 },
   tail: 1.9,
   narrator: 'bull',
 
@@ -113,6 +113,12 @@ export default {
       caption: 'Put the stop *beyond* the sweep, not right under the *obvious* low.', pauseAfter: 0.3 },
     { say: 'A wider stop means a smaller position, so the dollar risk stays the same.',
       caption: 'A *wider stop* means a *smaller position*, so the *dollar risk* stays the same.', pauseAfter: 0.3 },
+    { say: 'Keep the risk per trade small. Even a good read is wrong some of the time.',
+      caption: 'Keep the *risk per trade* small. Even a good read is *wrong* some of the time.', pauseAfter: 0.3 },
+    { say: 'Write every sweep you see in your journal. Did it turn, or keep going?',
+      caption: 'Write every sweep you see in your *journal*. Did it *turn*, or *keep going*?', pauseAfter: 0.3 },
+    { say: 'After fifty examples, you will know how it behaves on your market.',
+      caption: 'After *50 examples*, you will know how it behaves on *your market*.', pauseAfter: 0.3 },
     { say: 'Do not put your stop where everyone else does.',
       caption: 'Do not put your stop where *everyone else* does.', pauseAfter: 0.2 },
     { say: 'Save this before your next stop gets taken.',
@@ -134,7 +140,7 @@ export default {
     { at: '7', x: CH + 700, y: 976, zoom: 1.02, move: 0.6, push: 0 },
     { at: '9', x: CH + 640, y: 970, zoom: 1.0, move: 0.6, push: 0 },
     { at: '10+0.1', x: WB + 610, y: 956, zoom: 0.95, move: 0.8, push: 0.002 },
-    { at: '11+0.1', x: END + 600, y: 953, zoom: 0.95, move: 0.8, push: 0.004 },
+    { at: '14+0.1', x: END + 600, y: 953, zoom: 0.95, move: 0.8, push: 0.004 },
   ],
 
   actors: [{
@@ -144,21 +150,21 @@ export default {
       { at: 0.6, x: CL + 330, move: 1.2 },
       { at: '2', x: CH + 1010, face: -1, scale: 0.7, move: 0.8 },
       { at: '10+0.1', x: WB + 970, face: -1, scale: 0.82, move: 0.8 },
-      { at: '11+0.1', x: END + 820, face: -1, scale: 0.92, move: 0.8 },
+      { at: '14+0.1', x: END + 820, face: -1, scale: 0.92, move: 0.8 },
     ],
     moods: [
       { at: 0, mood: 'worried' }, { at: '1:your', mood: 'angry' }, { at: '2', mood: 'think' }, { at: '5:takes', mood: 'shocked' },
-      { at: '5:sweep', mood: 'smug' }, { at: '6', mood: 'think' }, { at: '9', mood: 'determined' }, { at: '12', mood: 'happy' },
+      { at: '5:sweep', mood: 'smug' }, { at: '6', mood: 'think' }, { at: '9', mood: 'determined' }, { at: '15', mood: 'happy' },
     ],
-    looks: [{ at: 0, look: 'right' }, { at: '1:your', look: 'cam' }, { at: '2', look: 'left' }, { at: '11', look: 'cam' }],
+    looks: [{ at: 0, look: 'right' }, { at: '1:your', look: 'cam' }, { at: '2', look: 'left' }, { at: '14', look: 'cam' }],
     actions: [
       { at: 0.3, do: 'sweat', dur: 1.4 },
-      { at: '2:everyone', do: 'point', dur: 1.2 },
+      { at: '2:most', do: 'point', dur: 1.2 },
       { at: '5:takes', do: 'shake', dur: 0.4 }, { at: '3:highs', do: 'point', dur: 1.0 },
       { at: '7:wait', do: 'tilt', dur: 1.2, deg: 10 }, { at: '9:beyond', do: 'point', dur: 1.0 },
       { at: '10', do: 'write', dur: 3.2 },
-      { at: '11:everyone', do: 'shake', dur: 0.5 },
-      { at: '12:save', do: 'jump', h: 140 }, { at: '12:save+0.1', do: 'cheer', dur: 1.2 },
+      { at: '14:everyone', do: 'shake', dur: 0.5 }, { at: '12', do: 'write', dur: 3.0 },
+      { at: '15:save', do: 'jump', h: 140 }, { at: '15:save+0.1', do: 'cheer', dur: 1.2 },
     ],
   }],
 
@@ -174,20 +180,25 @@ export default {
     { type: 'title', at: '9', until: '10-0.05', text: 'STOP *BEYOND*\nTHE SWEEP', y: 330 },
 
     // whiteboard
-    { id: 'w1', type: 'write', at: '10', dur: 0.7, x: WB + 120, y: 460, size: 62, maxW: 790, keyColor: '#1f8f84', text: 'Stop *beyond* structure' },
-    { id: 'w2', type: 'write', at: '10:smaller', dur: 0.7, x: WB + 120, y: 590, size: 62, maxW: 790, keyColor: '#1f8f84', text: 'Wider stop = *smaller* size' },
-    { id: 'w3', type: 'write', at: '10:same', dur: 0.7, x: WB + 120, y: 720, size: 54, maxW: 790, color: '#5b6680', text: 'Size = risk ÷ stop distance' },
-    { type: 'draw', around: 'w2', sub: 'smaller', at: '10:risk', shape: 'underline' },
+    { id: 'w1', type: 'write', at: '10', until: '12', dur: 0.7, x: WB + 120, y: 460, size: 62, maxW: 790, keyColor: '#1f8f84', text: 'Stop *beyond* structure' },
+    { id: 'w2', type: 'write', at: '10:smaller', until: '12', dur: 0.7, x: WB + 120, y: 590, size: 62, maxW: 790, keyColor: '#1f8f84', text: 'Wider stop = *smaller* size' },
+    { id: 'w3', type: 'write', at: '10:same', until: '12', dur: 0.7, x: WB + 120, y: 720, size: 54, maxW: 790, color: '#5b6680', text: 'Size = risk ÷ stop distance' },
+    { type: 'draw', around: 'w2', sub: 'smaller', at: '10:risk', until: '12', shape: 'underline' },
+    { id: 'w4', type: 'write', at: '11:small', until: '12', dur: 0.6, x: WB + 120, y: 850, size: 58, maxW: 790, keyColor: '#d84341', text: 'Small *risk* per trade' },
+    { id: 'w5', type: 'write', at: '12:journal', dur: 0.6, x: WB + 120, y: 460, size: 62, maxW: 790, keyColor: '#1f8f84', text: 'Sweep journal:' },
+    { id: 'w6', type: 'write', at: '12:turn', dur: 0.5, x: WB + 160, y: 580, size: 58, maxW: 760, keyColor: '#1f8f84', text: 'Did it *turn*?' },
+    { id: 'w7', type: 'write', at: '12:keep', dur: 0.5, x: WB + 160, y: 690, size: 58, maxW: 760, keyColor: '#d84341', text: 'Or *keep going*?' },
+    { id: 'w8', type: 'write', at: '13:50', dur: 0.6, x: WB + 120, y: 830, size: 62, maxW: 790, keyColor: '#9c7a2e', text: 'After *50* examples' },
 
     // CTA
-    { type: 'title', at: '11', until: '12:save-0.05', text: 'NOT WHERE\n*EVERYONE* IS', y: 330 },
-    { type: 'custom', layer: 'back', at: '11', draw: (t, sc, p) => {
+    { type: 'title', at: '14', until: '15:save-0.05', text: 'NOT WHERE\n*EVERYONE* IS', y: 330 },
+    { type: 'custom', layer: 'back', at: '14', draw: (t, sc, p) => {
       const o = Math.min(1, (t - p._at) / 0.4);
       let s = '';
       for (let k = 0; k < 10; k++) s += flag(END + 160 + (k % 5) * 30, 1236 - Math.floor(k / 5) * 26);
       return `<g opacity="${o.toFixed(2)}">${s}${flag(END + 470, 1180, '#26a69a')}</g>`;
     } },
-    { type: 'title', at: '12:save', text: '*SAVE THIS*', y: 300, size: 120, icon: 'bookmark', sfx: 'ding' },
+    { type: 'title', at: '15:save', text: '*SAVE THIS*', y: 300, size: 120, icon: 'bookmark', sfx: 'ding' },
   ],
 
   sfx: [
