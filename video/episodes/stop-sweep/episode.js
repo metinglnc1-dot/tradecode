@@ -30,7 +30,7 @@ const chartScene = (t, sc) => {
   // equal lows line
   const eq = Math.min(1, Math.max(0, (t - at('2:equal')) / 0.4));
   s += `<line x1="${CH + 40}" x2="${CH + 40 + (BX(6) - CH + 80) * eq}" y1="1050" y2="1050" stroke="#E4C471" stroke-width="5" stroke-dasharray="16 10"/>`;
-  if (eq > 0) s += `<g opacity="${eq.toFixed(2)}"><text data-qa="world" data-g="eq" x="${CH + 40}" y="1092" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">EQUAL</text><text data-qa="world" data-g="eq" x="${CH + 40}" y="1126" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">LOWS</text></g>`;
+  if (eq > 0) s += `<g opacity="${eq.toFixed(2)}"><text data-qa="world" data-g="eq" x="${CH + 75}" y="1092" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">EQUAL</text><text data-qa="world" data-g="eq" x="${CH + 75}" y="1126" font-family="Inter" font-weight="900" font-size="28" fill="#E4C471">LOWS</text></g>`;
   // the stops
   const fs = Math.min(1, Math.max(0, (t - at('2:everyone')) / 0.5));
   FLAGS.forEach(([x, y], k) => {
@@ -39,7 +39,7 @@ const chartScene = (t, sc) => {
     const gone = Math.max(0, (t - sweep - k * 0.03) / 0.6);
     s += `<g transform="translate(0 ${(gone * gone * 300).toFixed(1)}) rotate(${(gone * 60).toFixed(1)} ${x} ${y})" opacity="${Math.max(0, 1 - gone).toFixed(2)}">${flag(x, y)}</g>`;
   });
-  if (fs > 0 && t < sweep + 0.3) s += `<text data-qa="world" data-g="stops" x="${BX(3) + 20}" y="1168" text-anchor="middle" font-family="Inter" font-weight="900" font-size="34" fill="${Rd}" opacity="${Math.min(fs, Math.max(0, (sweep + 0.3 - t) / 0.3)).toFixed(2)}">STOPS</text>`;
+  if (fs > 0 && t < sweep + 0.3) s += `<text data-qa="world" data-g="stops" x="${BX(6) + 40}" y="1112" text-anchor="start" font-family="Inter" font-weight="900" font-size="34" fill="${Rd}" opacity="${Math.min(fs, Math.max(0, (sweep + 0.3 - t) / 0.3)).toFixed(2)}">STOPS</text>`;
   // the sweep candle grows down then closes back up
   if (t >= sweep - 0.4) {
     const q = Math.min(1, (t - sweep + 0.4) / 0.5), back = Math.min(1, Math.max(0, (t - sweep - 0.2) / 0.4));
