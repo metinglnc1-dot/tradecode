@@ -89,12 +89,12 @@ const cliff = (t) => {
 export default {
   id: 'stop-sweep-long',
   voice: { name: 'am_fenrir', speed: 1.1, lead: 0.4, gap: 0.22 },
-  tail: 1.9,
+  tail: 3.6,
   narrator: 'bull',
 
   lines: [
     { say: 'Why does price hit your stop, then go your way?',
-      caption: 'Why does price hit your *stop*, then go *your way*?', pauseAfter: 0.3 },
+      caption: 'Why does price hit your *stop*, then go *your way*?', pauseAfter: 0.6 },
     { say: 'Look at these two equal lows. Most traders put the stop just below them.',
       caption: 'Look at these two *equal lows*. Most traders put the *stop* just below them.', pauseAfter: 0.2 },
     { say: 'Equal highs work the same way. Short sellers put their stops just above.',
@@ -177,8 +177,8 @@ export default {
     { type: 'title', at: '5:sweep', until: '6-0.05', text: 'THE *SWEEP*', y: 300, size: 120 },
     { type: 'title', at: '6', until: '7-0.05', text: 'OR IT *KEEPS GOING*', y: 300, size: 110, keyColor: '#ef5350' },
     { type: 'title', at: '7', until: '9-0.05', text: 'WAIT FOR\n*CONFIRMATION*', y: 330 },
-    { type: 'tag', space: 'screen', at: '7:close', until: '9-0.05', x: 540, y: 500, size: 26, text: '1. CLOSE BACK INSIDE THE RANGE' },
-    { type: 'tag', space: 'screen', at: '8:break', until: '9-0.05', x: 540, y: 560, size: 26, text: '2. BREAK OF THE LAST SMALL HIGH' },
+    { type: 'tag', space: 'screen', at: '7:close', until: '9-0.05', x: 540, y: 560, size: 26, text: '1. CLOSE BACK INSIDE THE RANGE' },
+    { type: 'tag', space: 'screen', at: '8:break', until: '9-0.05', x: 540, y: 620, size: 26, text: '2. BREAK OF THE LAST SMALL HIGH' },
     { type: 'title', at: '9', until: '10-0.05', text: 'STOP *BEYOND*\nTHE SWEEP', y: 330 },
 
     // whiteboard
