@@ -10,9 +10,9 @@ const smooth = (q) => { q = Math.max(0, Math.min(1, q)); return q * q * (3 - 2 *
 // car heights (y of the car floor). Ground floor is 1300.
 const carA = (t, sc) => {
   const up0 = sc.tl.at('2:all'), up1 = sc.tl.at('2>') + 0.3, pop = sc.tl.at('5:drops');
-  if (t < pop) return 1300 - 1900 * smooth((t - up0) / (up1 - up0)) + Math.sin(t * 2) * 8 * (t > up1);
+  if (t < pop) return 1300 - 1500 * smooth((t - up0) / (up1 - up0)) + Math.sin(t * 2) * 8 * (t > up1);
   const q = Math.min(1, (t - pop) / 0.9);
-  return -600 + (1900 + 600) * q * q;
+  return -200 + (1900 + 200) * q * q;
 };
 const carB = (t, sc) => {
   const a = sc.tl.at('3:risks'), b = sc.tl.at('6:still');
@@ -30,7 +30,7 @@ const building = (t, sc) => {
   s += `<rect x="${BLD - 700}" y="1300" width="2600" height="14" fill="#56704b"/>
     <text data-g="gf" x="${BLD + 600}" y="1290" text-anchor="middle" font-family="Inter" font-weight="900" font-size="44" fill="#E4C471" opacity="0.8">START  $1,000</text>
     <rect x="${BLD + 60}" y="1314" width="1080" height="1400" fill="#140d10" opacity="0.6"/>
-    ${t > sc.tl.at('5:drops') + 0.6 ? '' : '<!--'}<text data-qa="world" data-g="bf" x="${BLD + 600}" y="1700" text-anchor="middle" font-family="Inter" font-weight="900" font-size="48" fill="#ef5350">BOTTOM FLOOR</text>${t > sc.tl.at('5:drops') + 0.6 ? '' : '-->'}`;
+    ${t > sc.tl.at('5:drops') + 0.6 ? '' : '<!--'}<text data-qa="world" data-g="bf" x="${SB}" y="1760" text-anchor="middle" font-family="Inter" font-weight="900" font-size="48" fill="#ef5350">BOTTOM FLOOR</text>${t > sc.tl.at('5:drops') + 0.6 ? '' : '-->'}`;
   // glass shafts
   [SA, SB].forEach((x) => { s += `<rect x="${x - 150}" y="-1500" width="300" height="3900" fill="#9fd3ff" opacity="0.07" stroke="#9fd3ff" stroke-opacity="0.25" stroke-width="6"/>`; });
   // the cars
