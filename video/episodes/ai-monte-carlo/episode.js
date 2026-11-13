@@ -111,7 +111,7 @@ export default {
   props: [
     { type: 'badge', at: 0.05, text: 'AI FOR TRADERS  PART 5/5' },
     { type: 'custom', layer: 'back', at: 0, until: '6+0.4', draw: (t, sc) => lab(t, sc) },
-    { type: 'tag', at: 0.3, until: '6+0.3', x: LAB + 600, y: 1180, size: 18, text: 'ILLUSTRATIVE  40% WINS  +2R / -1R  60 OF 10,000 RUNS SHOWN' },
+    { type: 'tag', space: 'screen', at: 0.3, until: '6+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE  40% WINS  +2R / -1R  60 OF 10,000 RUNS SHOWN' },
     { type: 'title', at: 0.02, until: '2-0.05', text: 'IT MAKES MONEY.\nSO WHY THE *HOLES?*', y: 330, sfx: 'bell' },
     // the prompt, on screen for two lines
     { type: 'custom', space: 'screen', at: '2', until: '4-0.02', draw: (t, sc, p) => {
@@ -125,12 +125,14 @@ export default {
     { type: 'title', at: '4', until: '5-0.05', text: '*8 LOSSES* IN A ROW?', y: 300, size: 110, keyColor: '#ef5350' },
     { type: 'countdown', at: '4>+0.15', from: 3, x: 540, y: 600, r: 86 },
     // reveal
-    { type: 'card', at: '5', until: '6+0.3', x: LAB + 230, y: 330, w: 740, title: 'IN 100 TRADES', badge: 'CHANCE', badgeColor: '#E4C471',
-      rows: [
-        { label: '8 losses in a row', value: 'about 49%', color: '#ef5350' },
-        { label: '5 losses in a row', values: [{ at: '5:5', v: 'about 98%' }] },
-        { label: '10 losses in a row', values: [{ at: '5:10', v: 'about 20%' }] },
-      ] },
+    { type: 'custom', space: 'screen', at: '5', until: '6-0.02', draw: (t, sc, p) => {
+      const q = Math.min(1, (t - p._at) / 0.3), o = Math.min(q, Math.max(0, (p._until - t) / 0.2));
+      const rows = [['8 LOSSES IN A ROW', 'ABOUT 49%', '#ef5350', '5'], ['5 LOSSES IN A ROW', 'ABOUT 98%', '#E4C471', '5:5'], ['10 LOSSES IN A ROW', 'ABOUT 20%', '#E4C471', '5:10']];
+      return `<g opacity="${o.toFixed(2)}"><rect x="60" y="330" width="960" height="420" rx="30" fill="#141a26" stroke="#E4C471" stroke-width="5" filter="url(#shadow)"/>
+        <text data-qa="screen" data-g="odds" x="100" y="400" font-family="Luckiest Guy" font-size="48" fill="#E4C471">IN 100 TRADES</text>
+        ${rows.map(([l, v, c, at], k) => t < sc.tl.at(at) ? '' : `<text data-qa="screen" data-g="odds${k}" x="100" y="${500 + k * 95}" font-family="Inter" font-weight="700" font-size="44" fill="#fff">${l}</text>
+          <text data-qa="screen" data-g="odds${k}v" x="980" y="${500 + k * 95}" text-anchor="end" font-family="Inter" font-weight="900" font-size="52" fill="${c}">${v}</text>`).join('')}</g>`;
+    } },
     // the math of the streak
     { id: 'm1', type: 'write', at: '6:8', x: WB + 120, y: 470, size: 74, keyColor: '#1f8f84', text: '1% risk: 0.99⁸ = *0.92*' },
     { id: 'm2', type: 'write', at: '6:1%>', x: WB + 120, y: 560, size: 60, color: '#5b6680', text: 'about -8%' },
