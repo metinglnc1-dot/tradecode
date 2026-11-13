@@ -28,9 +28,9 @@ const building = (t, sc) => {
     s += `<rect x="${BLD + 60}" y="${y}" width="1080" height="10" fill="${below ? '#3a2a2a' : '#2b3a5e'}"/>`;
   }
   s += `<rect x="${BLD - 700}" y="1300" width="2600" height="14" fill="#56704b"/>
-    <text data-qa="bg" data-g="gf" x="${BLD + 600}" y="1290" text-anchor="middle" font-family="Inter" font-weight="900" font-size="44" fill="#E4C471" opacity="0.8">START  $1,000</text>
+    <text data-g="gf" x="${BLD + 600}" y="1290" text-anchor="middle" font-family="Inter" font-weight="900" font-size="44" fill="#E4C471" opacity="0.8">START  $1,000</text>
     <rect x="${BLD + 60}" y="1314" width="1080" height="1400" fill="#140d10" opacity="0.6"/>
-    <text data-qa="world" data-g="bf" x="${BLD + 600}" y="1700" text-anchor="middle" font-family="Inter" font-weight="900" font-size="48" fill="#ef5350">BOTTOM FLOOR</text>`;
+    ${t > sc.tl.at('5:drops') + 0.6 ? '' : '<!--'}<text data-qa="world" data-g="bf" x="${BLD + 600}" y="1700" text-anchor="middle" font-family="Inter" font-weight="900" font-size="48" fill="#ef5350">BOTTOM FLOOR</text>${t > sc.tl.at('5:drops') + 0.6 ? '' : '-->'}`;
   // glass shafts
   [SA, SB].forEach((x) => { s += `<rect x="${x - 150}" y="-1500" width="300" height="3900" fill="#9fd3ff" opacity="0.07" stroke="#9fd3ff" stroke-opacity="0.25" stroke-width="6"/>`; });
   // the cars
@@ -52,7 +52,7 @@ const building = (t, sc) => {
       : `<line x1="${SA}" y1="${(ya - 360).toFixed(1)}" x2="${SA}" y2="${(ya - 600).toFixed(1)}" stroke="#d9d2c3" stroke-width="6"/>
         <circle cx="${SA}" cy="${(ya - 760).toFixed(1)}" r="${r * 1.3}" fill="#E4C471" stroke="#7a5c1c" stroke-width="12"/>
         <circle cx="${SA}" cy="${(ya - 760).toFixed(1)}" r="${r - 40}" fill="none" stroke="#7a5c1c" stroke-width="8"/>
-        <text data-qa="world" data-g="coin" x="${SA}" y="${(ya - 720).toFixed(1)}" text-anchor="middle" font-family="Luckiest Guy" font-size="120" fill="#7a5c1c">1</text>`;
+        <text data-g="coin" x="${SA}" y="${(ya - 720).toFixed(1)}" text-anchor="middle" font-family="Luckiest Guy" font-size="120" fill="#7a5c1c">1</text>`;
   }
   return s;
 };
@@ -104,8 +104,8 @@ export default {
 
   camera: [
     { at: 0, x: OUT + 600, y: 953, zoom: 0.95, push: 0.008 },
-    { at: '2', x: BLD + 600, y: 300, zoom: 0.55, move: 0.9 },
-    { at: '4', x: BLD + 600, y: 300, zoom: 0.55, move: 0.6 },
+    { at: '2', x: BLD + 600, y: 600, zoom: 0.45, move: 0.9 },
+    { at: '4', x: BLD + 600, y: 600, zoom: 0.45, move: 0.6 },
     { at: '5:drops', x: BLD + 600, y: 1500, zoom: 0.5, move: 0.9 },
     { at: '7+0.1', x: WB + 610, y: 956, zoom: 0.95, move: 0.8, push: 0.002 },
   ],
@@ -136,8 +136,8 @@ export default {
     } },
     { type: 'title', at: '4', until: '5-0.05', text: 'WHERE DO THEY\n*END UP?*', y: 760, icon: 'comment' },
     { type: 'countdown', at: '4>+0.15', from: 3, x: 540, y: 1000, r: 80 },
-    { type: 'title', at: '5:drops', until: '6-0.05', text: '*-80%*', y: 760, size: 150, keyColor: '#ef5350' },
-    { type: 'title', at: '6', until: '7-0.05', text: '*10 LOSSES*\nSTILL $904', y: 760, keyColor: '#26a69a' },
+    { type: 'title', at: '5:drops', until: '6-0.05', text: '*-80%*', y: 290, size: 140, keyColor: '#ef5350' },
+    { type: 'title', at: '6', until: '7-0.05', text: '*10 LOSSES*  STILL $904', y: 290, size: 84, keyColor: '#26a69a' },
 
     // whiteboard
     { id: 'w1', type: 'write', at: '7', dur: 0.7, x: WB + 120, y: 450, size: 60, maxW: 790, keyColor: '#d84341', text: 'A  $200 → $1,000 = *+400%*' },
