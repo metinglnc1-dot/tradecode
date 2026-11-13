@@ -1,0 +1,15 @@
+A 30% win rate can beat 70%. Did you guess right?
+
+Left wins 70% of trades, but wins only 0.3R and loses 1R.
+0.7 x 0.3 - 0.3 x 1 = -0.09R per trade. After 100 trades at $100 risk: -$900.
+
+Right wins 30%, but wins 3R and loses 1R.
+0.3 x 3 - 0.7 x 1 = +0.2R per trade. After 100 trades: +$2,000.
+
+Break-even win rate = 1 / (1 + reward). 0.3R needs 76.9%. 3R needs 25%.
+
+Win rate alone means nothing. Comment LEFT or RIGHT: what did you guess? 👇
+
+Illustrative numbers. R = $100 risk per trade.
+
+#tradingmath #riskmanagement #daytrading #tradingtips #trading

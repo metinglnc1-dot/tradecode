@@ -1,0 +1,14 @@
+Why does price hit your stop, then go your way?
+
+Equal lows collect stops. That pile of stops is liquidity.
+Price can dip, take it, and turn. That is a sweep.
+Equal highs work the same way, with short sellers' stops above.
+But not every sweep turns. Wait for confirmation: a close back inside the range, then a break of the last small high on a lower timeframe.
+
+Put the stop a bit beyond the structure and make the position smaller for the same risk. Do not put your stop where everyone else does.
+
+Save this before your next stop gets taken 🔖 The Liquidity Sweeps indicator marks sweeps on your chart, link in bio.
+
+Chart is illustrative. Not a trade signal.
+
+#liquidity #smartmoneyconcepts #daytrading #riskmanagement #trading

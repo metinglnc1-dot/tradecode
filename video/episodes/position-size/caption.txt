@@ -1,0 +1,14 @@
+Same risk. Different size. Why?
+
+Account $5,000. Risk 1% = $50.
+Entry 100, stop 98: $2 per unit, so 25 units ($2,500 position).
+Entry 100, stop 95: $5 per unit, so 10 units ($1,000 position).
+If either stop is hit, you lose $50.
+
+Size = risk ÷ stop distance. Wider stop, smaller position.
+
+Save this for your next trade 🔖
+
+Numbers are illustrative.
+
+#positionsizing #riskmanagement #daytrading #tradingtips #trading

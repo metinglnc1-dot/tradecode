@@ -13,8 +13,8 @@ const tally = (t, sc, x, marks) => {
   return marks.map((w, i) => {
     const q = Math.min(1, Math.max(0, (t - a - i * 0.12) / 0.2));
     if (q <= 0) return '';
-    const cx = x - 225 + i * 50;
-    return `<g transform="translate(${cx} 560) scale(${q.toFixed(2)})">${w
+    const cx = x - 180 + i * 40;
+    return `<g transform="translate(${cx} 560) scale(${(q * 0.8).toFixed(2)})">${w
       ? '<circle r="21" fill="#26a69a"/><path d="M-9 1 L-2 8 L10 -7" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>'
       : '<circle r="21" fill="#ef5350"/><path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#fff" stroke-width="5" stroke-linecap="round"/>'}</g>`;
   }).join('');
@@ -112,8 +112,9 @@ export default {
     { id: 'w1', type: 'write', at: '6', dur: 0.7, x: WB + 120, y: 450, size: 54, maxW: 790, keyColor: '#d84341', text: '0.7×0.3 - 0.3×1 = *-0.09R*' },
     { id: 'w2', type: 'write', at: '6:size', dur: 0.7, x: WB + 120, y: 560, size: 54, maxW: 790, keyColor: '#1f8f84', text: '0.3×3 - 0.7×1 = *+0.2R*' },
     { id: 'w3', type: 'write', at: '7', dur: 0.6, x: WB + 120, y: 700, size: 48, maxW: 790, color: '#5b6680', text: 'Break even = 1 ÷ (1 + reward)' },
-    { id: 'w4', type: 'write', at: '7:needs', dur: 0.6, x: WB + 120, y: 800, size: 54, maxW: 790, keyColor: '#d84341', text: '0.3R: *76.9%*   3R: *25%*' },
-    { type: 'draw', around: 'w4', sub: '76.9%', at: '7:even', shape: 'circle' },
+    { id: 'w4', type: 'write', at: '7:needs', dur: 0.6, x: WB + 120, y: 800, size: 54, maxW: 790, keyColor: '#d84341', text: '0.3R wins need *76.9%*' },
+    { id: 'w5', type: 'write', at: '7:even', dur: 0.5, x: WB + 120, y: 900, size: 54, maxW: 790, keyColor: '#1f8f84', text: '3R wins need *25%*' },
+    { type: 'draw', around: 'w4', sub: '76.9%', at: '7:even', shape: 'underline' },
     { type: 'title', at: '7:save', text: '*SAVE THIS*', y: 300, size: 120, icon: 'bookmark', sfx: 'ding' },
   ],
 

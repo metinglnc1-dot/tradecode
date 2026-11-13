@@ -35,7 +35,8 @@ const museum = (t, sc) => {
       <rect x="${x - 150}" y="1040" width="300" height="260" fill="#d9d2c3" stroke="#8d8576" stroke-width="6"/>
       <rect x="${x - 170}" y="1030" width="340" height="30" rx="6" fill="#efe9dc" stroke="#8d8576" stroke-width="5"/>
       <rect x="${x - 70}" y="1110" width="140" height="90" rx="10" fill="#E4C471" stroke="#7a5c1c" stroke-width="5"/>
-      <text data-qa="world" data-g="ped${k}" x="${x}" y="1182" text-anchor="middle" font-family="Luckiest Guy" font-size="72" fill="#141414">${k + 1}</text>
+      <circle cx="${x}" cy="610" r="48" fill="#E4C471" stroke="#7a5c1c" stroke-width="6"/>
+      <text data-qa="world" data-g="ped${k}" x="${x}" y="636" text-anchor="middle" font-family="Luckiest Guy" font-size="66" fill="#141414">${k + 1}</text>
       <g opacity="${on ? 1 : 0.55}">${STATUE[k](x)}</g>`;
   });
   return s;
@@ -86,8 +87,8 @@ export default {
   ],
 
   camera: [
-    { at: 0, x: MUS + 540, y: 900, zoom: 0.9, push: 0.004 },
-    ...SPOT.map((x, k) => ({ at: `${k + 2}`, x: Math.min(x + 60, MUS + 2200), y: 900, zoom: 0.9, move: 0.6, push: 0.002 })),
+    { at: 0, x: MUS + 540, y: 933, zoom: 0.9, push: 0.002 },
+    ...SPOT.map((x, k) => ({ at: `${k + 2}`, x: Math.min(x + 60, MUS + 2200), y: 933, zoom: 0.9, move: 0.6, push: 0 })),
     { at: '7+0.1', x: CH + 600, y: 953, zoom: 0.95, move: 0.8, push: 0.003 },
     { at: '8+0.1', x: WB + 610, y: 956, zoom: 0.95, move: 0.8, push: 0.002 },
   ],
@@ -95,9 +96,9 @@ export default {
   actors: [{
     kind: 'bull', id: 'bull',
     path: [
-      { at: 0, x: SPOT[0] + 240, y: 1300, face: -1, scale: 0.68 },
-      ...SPOT.map((x, k) => ({ at: `${k + 2}`, x: x + 240, face: -1, move: 0.6 })),
-      { at: '7+0.1', x: CH + 950, face: -1, scale: 0.8, move: 0.8 },
+      { at: 0, x: SPOT[0] + 250, y: 1300, face: -1, scale: 0.6 },
+      ...SPOT.map((x, k) => ({ at: `${k + 2}`, x: x + 250, face: -1, move: 0.6 })),
+      { at: '7+0.1', x: CH + 1060, face: -1, scale: 0.7, move: 0.8 },
       { at: '8+0.1', x: WB + 970, face: -1, scale: 0.82, move: 0.8 },
     ],
     moods: [{ at: 0, mood: 'think' }, { at: '2', mood: 'happy' }, { at: '4', mood: 'excited' }, { at: '5', mood: 'think' }, { at: '7', mood: 'determined' }, { at: '8', mood: 'happy' }],
@@ -127,8 +128,8 @@ export default {
     { type: 'tag', space: 'screen', at: '7', until: '8+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE CHART' },
 
     // CTA list
-    { type: 'rules', at: '8', x: WB + 120, y: 420, w: 800, title: '', gap: 95, size: 54,
-      items: NAMES.map((n, k) => ({ at: `8+${(k * 0.12).toFixed(2)}`, text: `${k + 1}. *${n.charAt(0)}${n.slice(1).toLowerCase()}*` })) },
+    ...NAMES.map((n, k) => ({ type: 'write', at: `8+${(k * 0.15).toFixed(2)}`, dur: 0.4, x: WB + 120, y: 440 + k * 105, size: 62, maxW: 790, keyColor: '#1f8f84',
+      text: `${k + 1}. *${n.charAt(0)}${n.slice(1).toLowerCase()}*` })),
     { type: 'title', at: '8:drop', text: '*DROP* THE NUMBER', y: 300, size: 110, icon: 'comment', sfx: 'ding' },
   ],
 
