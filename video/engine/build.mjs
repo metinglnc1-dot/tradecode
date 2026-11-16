@@ -30,7 +30,11 @@ function run(cmd, a) {
 // ---------- 1. voice ----------
 const ep = (await import(pathToFileURL(path.join(ROOT, 'episodes', id, 'episode.js')).href)).default;
 fs.writeFileSync(path.join(OUT, 'lines.json'), JSON.stringify({ voice: ep.voice, lines: ep.lines.map((l) => ({ say: l.say, caption: l.caption, pauseAfter: l.pauseAfter, voice: l.voice, speed: l.speed })) }, null, 1));
-run(PY, ['engine/voice.py', path.join(OUT, 'lines.json'), OUT]);
+if (ep.silent) {
+  // no narration: a silent voice track and a timeline of fixed length (anchors are plain seconds)
+  fs.writeFileSync(path.join(OUT, 'timings.json'), JSON.stringify({ hash: 'silent', fps: 30, voiceEnd: ep.length, lines: [], mouth: [] }));
+  run('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono', '-t', String(ep.length), path.join(OUT, 'voice.wav')]);
+} else run(PY, ['engine/voice.py', path.join(OUT, 'lines.json'), OUT]);
 
 // ---------- static server ----------
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.ttf': 'font/ttf', '.png': 'image/png' };
