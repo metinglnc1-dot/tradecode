@@ -1,14 +1,14 @@
 // Episode: 3 sessions. 3 personalities. (idea card 5, Fikirler 2026-11-13)
-// Hours: the common ICT killzone times given on the card, New York time: Asia 20:00-00:00, London 02:00-05:00,
-// New York 07:00-10:00. They could not be checked against the indicator's default settings (the listing
-// page refuses automated reading), so the video calls them "common" times and the report flags them.
+// v2 (17 Nov 2026): no hours anywhere. The chart is drawn in the look of our ICT Killzones indicator
+// (from the user's screenshot): each session is a box from its own high to its own low, thin coloured border,
+// translucent fill, dashed lines running right from the top and bottom edges, and an arrow-tag label.
 // The price path is illustrative. Product (1 of 2): ICT Killzones Sessions Indicator, caption only.
-const CLK = 0, CH = 1300, WB = 4100;
+const CLK = 0, CH = 1300;
 const HX = (h) => CH + 100 + (h - 18) * 130; // 18:00 (previous day) to 12:00 = 18 hours
 const ZONES = [
-  { name: 'ASIA', h0: 20, h1: 24, col: '#5c7cfa', label: '20:00 TO 00:00' },
-  { name: 'LONDON', h0: 26, h1: 29, col: '#26a69a', label: '02:00 TO 05:00' },
-  { name: 'NEW YORK', h0: 31, h1: 34, col: '#E4C471', label: '07:00 TO 10:00' },
+  { name: 'Asia', h0: 20, h1: 24, line: '#8f7a32', fill: '#8f7a32', tag: '#6e5a24', ink: '#f3e7c4' },
+  { name: 'London', h0: 26, h1: 29, line: '#e9a3bd', fill: '#e9a3bd', tag: '#c97d99', ink: '#ffffff' },
+  { name: 'New York', h0: 31, h1: 34, line: '#4caf72', fill: '#4caf72', tag: '#3f8f5f', ink: '#ffffff' },
 ];
 // illustrative price path, one point per half hour (y in world units, lower is higher price)
 const PATH = (() => {
@@ -24,7 +24,7 @@ const PATH = (() => {
     else if (h < 31) y = 985 + Math.sin(k * 1.3) * 18;
     else if (h < 34) y = 985 - (h - 31) * 120 + Math.sin(k * 2.1) * 25; // New York: the big move
     else y = 640 + Math.sin(k * 1.9) * 30;
-    pts.push([HX(h), y]);
+    pts.push([HX(h), 820 + (y - 980) * 2.6]);
   }
   return pts;
 })();
@@ -47,31 +47,65 @@ const clocks = (t) => {
   return s;
 };
 
+// candles built from the path: one every 20 world units
+const CANDLES = (() => {
+  const out = [];
+  const yAt = (x) => {
+    for (let i = 1; i < PATH.length; i++) if (PATH[i][0] >= x) {
+      const [x0, y0] = PATH[i - 1], [x1, y1] = PATH[i], q = (x - x0) / (x1 - x0);
+      return y0 + (y1 - y0) * q;
+    }
+    return PATH[PATH.length - 1][1];
+  };
+  let prev = yAt(PATH[0][0]), seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let x = PATH[0][0]; x <= PATH[PATH.length - 1][0]; x += 20) {
+    const c = yAt(x) + (rnd() - 0.5) * 70, o = prev;
+    out.push({ x, o, c, hi: Math.min(o, c) - rnd() * 34, lo: Math.max(o, c) + rnd() * 34 });
+    prev = c;
+  }
+  return out;
+})();
+
 const day = (t, sc) => {
-  let s = `<rect x="${CH - 300}" y="-900" width="3000" height="2200" fill="#0b111b"/>
-    ${Array.from({ length: 30 }, (_, i) => `<line x1="${CH - 300 + i * 100}" x2="${CH - 300 + i * 100}" y1="-900" y2="1300" stroke="#1d2636" stroke-width="3"/>`).join('')}
-    ${Array.from({ length: 22 }, (_, i) => `<line x1="${CH - 300}" x2="${CH + 2700}" y1="${-900 + i * 100}" y2="${-900 + i * 100}" stroke="#1d2636" stroke-width="3"/>`).join('')}
-    <rect x="${CH - 300}" y="1300" width="3000" height="1400" fill="#080c14"/>`;
-  ZONES.forEach((z, k) => {
-    const on = Math.min(1, Math.max(0, (t - sc.tl.at(['2', '3', '4'][k])) / 0.4));
+  let s = `<rect x="${CH - 300}" y="-900" width="3200" height="2200" fill="#0f0f10"/>
+    ${Array.from({ length: 32 }, (_, i) => `<line x1="${CH - 300 + i * 100}" x2="${CH - 300 + i * 100}" y1="-900" y2="1300" stroke="#1d1d20" stroke-width="2"/>`).join('')}
+    ${Array.from({ length: 22 }, (_, i) => `<line x1="${CH - 300}" x2="${CH + 2900}" y1="${-900 + i * 100}" y2="${-900 + i * 100}" stroke="#1d1d20" stroke-width="2"/>`).join('')}
+    <rect x="${CH - 300}" y="1300" width="3200" height="1400" fill="#0a0a0b"/>`;
+  // candles draw themselves as the camera moves along the day
+  // each line draws its own session: Asia during line 2, London during line 3, New York during line 4
+  const seg = [['2', HX(18), '3', HX(25)], ['3', HX(25), '4', HX(30.2)], ['4', HX(30.2), '4>', HX(36)]];
+  let xs = HX(18);
+  for (const [a0, xa, b0, xb] of seg) {
+    const ta = sc.tl.at(a0), tb = sc.tl.at(b0);
+    if (t >= ta) xs = xa + (xb - xa) * Math.min(1, (t - ta) / (tb - ta));
+  }
+  const shown = CANDLES.filter((c) => c.x <= xs);
+  if (shown.length < 2) shown.push(CANDLES[0], CANDLES[1]);
+  // session boxes: from the session's own high to its own low, growing with the candles
+  let tags = '';
+  ZONES.forEach((z) => {
     const x0 = HX(z.h0), x1 = HX(z.h1);
-    const nxAt = k < 2 ? ['2', '3', '4'][k + 1] : '5';
-    const nx = Math.min(1, Math.max(0, (t - sc.tl.at(nxAt) + 0.3) / 0.3));
-    const lab = on * (1 - nx);
-    s += `<rect x="${x0}" y="560" width="${x1 - x0}" height="700" fill="${z.col}" opacity="${(0.06 + 0.12 * on).toFixed(2)}"/>
-      <rect x="${x0}" y="560" width="${x1 - x0}" height="10" fill="${z.col}" opacity="${(0.3 + 0.7 * on).toFixed(2)}"/>
-      ${lab > 0 ? `<text data-qa="world" data-g="z${k}" x="${(x0 + x1) / 2}" y="640" text-anchor="middle" font-family="Luckiest Guy" font-size="54" fill="${z.col}" opacity="${lab.toFixed(2)}">${z.name}</text>
-      <text data-qa="world" data-g="z${k}h" x="${(x0 + x1) / 2}" y="690" text-anchor="middle" font-family="Inter" font-weight="900" font-size="30" fill="${z.col}" opacity="${lab.toFixed(2)}">${z.label}</text>` : ''}`;
+    const inside = shown.filter((c) => c.x >= x0 && c.x <= x1);
+    if (!inside.length) return;
+    const top = Math.min(...inside.map((c) => c.hi)), bot = Math.max(...inside.map((c) => c.lo));
+    const right = Math.min(x1, inside[inside.length - 1].x + 10);
+    s += `<rect x="${x0}" y="${top.toFixed(1)}" width="${(right - x0).toFixed(1)}" height="${(bot - top).toFixed(1)}" fill="${z.fill}" fill-opacity="0.13" stroke="${z.line}" stroke-width="4"/>`;
+    if (right >= x1 - 1) {
+      const ex = x1 + 120;
+      s += `<line x1="${x1}" x2="${ex}" y1="${top.toFixed(1)}" y2="${top.toFixed(1)}" stroke="${z.line}" stroke-width="4" stroke-dasharray="16 12"/>
+        <line x1="${x1}" x2="${ex}" y1="${bot.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="${z.line}" stroke-width="4" stroke-dasharray="16 12"/>`;
+      const w = z.name.length * 27 + 50, ty = top;
+      tags += `<path d="M${ex} ${ty} l 24 -32 h ${w} a 8 8 0 0 1 8 8 v 48 a 8 8 0 0 1 -8 8 h ${-w} Z" fill="${z.tag}" stroke="${z.line}" stroke-width="3"/>
+        <text data-qa="world" data-g="tag${z.name}" x="${ex + 24 + w / 2}" y="${ty + 16}" text-anchor="middle" font-family="Inter" font-weight="600" font-size="46" fill="${z.ink}">${z.name}</text>`;
+    }
   });
-  // the path draws itself as the camera moves along the day
-  const a = sc.tl.at('2'), b = sc.tl.at('4>');
-  const n = Math.max(1, Math.min(PATH.length - 1, Math.floor(2 + ((t - a) / (b - a)) * (PATH.length - 2))));
-  s += `<polyline points="${PATH.slice(0, n + 1).map(([x, y]) => `${x},${y.toFixed(1)}`).join(' ')}" fill="none" stroke="#e8edf5" stroke-width="7" stroke-linejoin="round"/>
-    <circle cx="${PATH[n][0]}" cy="${PATH[n][1].toFixed(1)}" r="12" fill="#E4C471"/>`;
-  // the Asia range lines
-  const r = Math.min(1, Math.max(0, (t - sc.tl.at('2:range')) / 0.4));
-  if (r > 0) s += `<g opacity="${r.toFixed(2)}"><line x1="${HX(20)}" x2="${HX(29)}" y1="976" y2="976" stroke="#5c7cfa" stroke-width="4" stroke-dasharray="14 10"/><line x1="${HX(20)}" x2="${HX(29)}" y1="1044" y2="1044" stroke="#5c7cfa" stroke-width="4" stroke-dasharray="14 10"/></g>`;
-  return s;
+  shown.forEach((c) => {
+    const up = c.c < c.o, col = up ? '#26a69a' : '#ef5350';
+    s += `<line x1="${c.x}" x2="${c.x}" y1="${c.hi.toFixed(1)}" y2="${c.lo.toFixed(1)}" stroke="${col}" stroke-width="3"/>
+      <rect x="${c.x - 7}" y="${Math.min(c.o, c.c).toFixed(1)}" width="14" height="${Math.max(3, Math.abs(c.c - c.o)).toFixed(1)}" fill="${col}"/>`;
+  });
+  return s + tags;
 };
 
 const pick = (t, at) => {
@@ -100,34 +134,34 @@ export default {
       caption: '*London* is *fast*. Its open often takes *one side* of that range.', pauseAfter: 0.2 },
     { say: 'New York is the crowd. Its open, overlapping London, is the busiest part of the day.',
       caption: '*New York* is the *crowd*. Its open, overlapping London, is the *busiest* part of the day.', pauseAfter: 0.3 },
-    { say: 'Common killzones in New York time: Asia eight to midnight, London two to five, New York seven to ten.',
-      caption: 'Common *killzones* in New York time: *Asia 20 to 24*, *London 2 to 5*, *New York 7 to 10*.', pauseAfter: 0.3 },
+    { say: 'On the chart, each session gets its own box, from its high to its low.',
+      caption: 'On the chart, each session gets its own *box*, from its *high* to its *low*.', pauseAfter: 0.4 },
     { say: 'Do not memorise the hours. Draw them on your chart.',
       caption: 'Do not memorise the hours. *Draw them* on your chart.', pauseAfter: 0.3 },
     { say: 'Asia, London or New York? Comment your session.',
       caption: '*Asia*, *London* or *New York*? *Comment your session*.' },
   ],
 
-  world: [{ set: 'whiteboard', x: WB }],
+  world: [],
 
   camera: [
     { at: 0, x: CLK + 600, y: 953, zoom: 0.95, push: 0.008 },
-    { at: '2', x: (HX(20) + HX(24)) / 2, y: 953, zoom: 0.95, move: 0.9, push: 0 },
-    { at: '3', x: (HX(26) + HX(29)) / 2, y: 953, zoom: 0.95, move: 0.9, push: 0 },
-    { at: '4', x: (HX(31) + HX(34)) / 2, y: 900, zoom: 0.95, move: 0.9, push: 0 },
-    { at: '5+0.1', x: WB + 610, y: 956, zoom: 0.95, move: 0.9, push: 0.002 },
-    { at: '7+0.1', x: CLK + 600, y: 953, zoom: 0.95, move: 0.9, push: 0.004 },
+    { at: '2', x: (HX(20) + HX(24)) / 2, y: 1150, zoom: 0.95, move: 0.9, push: 0 },
+    { at: '3', x: (HX(26) + HX(29)) / 2, y: 1150, zoom: 0.95, move: 0.9, push: 0 },
+    { at: '4', x: (HX(31) + HX(34)) / 2 - 60, y: 600, zoom: 0.7, move: 0.9, push: 0 },
+    { at: '5', x: HX(27) + 130, y: 950, zoom: 0.44, move: 1.2, push: 0.002 },
+    { at: '7', x: CLK + 600, y: 953, zoom: 0.95, move: 0.45, push: 0.004 },
   ],
 
   actors: [{
     kind: 'bull', id: 'bull',
     path: [
       { at: 0, x: CLK + 600, y: 1300, face: 1, scale: 0.8 },
-      { at: '2', x: (HX(20) + HX(24)) / 2 + 280, face: -1, scale: 0.7, move: 0.9 },
-      { at: '3', x: (HX(26) + HX(29)) / 2 + 280, move: 0.9 },
-      { at: '4', x: (HX(31) + HX(34)) / 2 + 300, move: 0.9 },
-      { at: '5+0.1', x: WB + 970, scale: 0.82, move: 0.9 },
-      { at: '7+0.1', x: CLK + 600, face: 1, scale: 0.85, move: 0.9 },
+      { at: '2', x: (HX(20) + HX(24)) / 2 + 330, face: -1, scale: 0.55, move: 0.9 },
+      { at: '3', x: (HX(26) + HX(29)) / 2 + 330, move: 0.9 },
+      { at: '4', x: (HX(31) + HX(34)) / 2 + 360, move: 0.9 },
+      { at: '5', x: HX(35), scale: 0.9, move: 1.2 },
+      { at: '7', x: CLK + 600, face: 1, scale: 0.85, move: 0.45 },
     ],
     moods: [
       { at: 0, mood: 'think' }, { at: '2', mood: 'neutral' }, { at: '3', mood: 'excited' }, { at: '4', mood: 'shocked' },
@@ -139,7 +173,7 @@ export default {
       { at: '2:calm', do: 'nod', dur: 0.6 },
       { at: '3:fast', do: 'shake', dur: 0.5 },
       { at: '4:crowd', do: 'sweat', dur: 1.6 },
-      { at: '5', do: 'write', dur: 3.6 },
+      { at: '5:box', do: 'point', dur: 1.4 },
       { at: '7:comment', do: 'wave', dur: 2.0 },
     ],
   }],
@@ -147,19 +181,16 @@ export default {
   props: [
     { type: 'custom', layer: 'back', at: 0, until: '2+0.6', draw: (t) => clocks(t) },
     { type: 'custom', layer: 'back', at: '1>', draw: (t, sc) => day(t, sc) },
-    { type: 'custom', layer: 'back', at: '7', draw: (t) => clocks(t) },
+    { type: 'custom', layer: 'back', at: '6', draw: (t) => clocks(t) },
     { type: 'title', at: 0.02, until: '2-0.05', text: '3 SESSIONS\n*3 PERSONALITIES*', y: 330, sfx: 'bell' },
-    { type: 'tag', space: 'screen', at: '2', until: '5+0.3', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE PRICE PATH  NEW YORK TIME' },
+    { type: 'tag', space: 'screen', at: '2', until: '7', x: 540, y: 1163, size: 16, text: 'ILLUSTRATIVE PRICE PATH' },
     { type: 'title', at: '2', until: '3-0.05', text: '*ASIA*  CALM', y: 300, size: 120, keyColor: '#9fb4ff' },
     { type: 'title', at: '3', until: '4-0.05', text: '*LONDON*  FAST', y: 300, size: 120, keyColor: '#26a69a' },
     { type: 'title', at: '4', until: '5-0.05', text: '*NEW YORK*  CROWD', y: 300, size: 110 },
 
     // whiteboard: the hours
-    { id: 'w1', type: 'write', at: '5:asia', dur: 0.6, x: WB + 120, y: 460, size: 60, maxW: 790, keyColor: '#3b5bdb', text: '*Asia*  20:00 to 00:00' },
-    { id: 'w2', type: 'write', at: '5:london', dur: 0.6, x: WB + 120, y: 580, size: 60, maxW: 790, keyColor: '#1f8f84', text: '*London*  02:00 to 05:00' },
-    { id: 'w3', type: 'write', at: '5:new#2', dur: 0.6, x: WB + 120, y: 700, size: 60, maxW: 790, keyColor: '#9c7a2e', text: '*New York*  07:00 to 10:00' },
-    { id: 'w4', type: 'write', at: '6:draw', dur: 0.6, x: WB + 120, y: 840, size: 50, maxW: 790, color: '#5b6680', text: 'New York time. Draw them.' },
-    { type: 'tag', at: '5', until: '7+0.3', x: WB + 500, y: 990, size: 19, text: 'COMMON ICT TIMES  CHECK YOUR OWN SETTINGS' },
+    { type: 'title', at: '5', until: '6-0.05', text: 'EACH SESSION,\n*ITS OWN BOX*', y: 330 },
+    { type: 'title', at: '6', until: '7-0.05', text: '*DRAW* THEM', y: 300, size: 120 },
 
     // CTA
     { type: 'custom', space: 'screen', at: '7', draw: (t, sc, p) => pick(t, p._at) },
