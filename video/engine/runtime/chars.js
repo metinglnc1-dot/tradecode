@@ -110,7 +110,7 @@ class Actor {
 }
 
 // ======================= BULL =======================
-const BULL_DEF = { wave: 1.2, point: 1.2, cheer: 1.2, type: 1.5, write: 1.0, shrug: 1.0, jump: 0.6, tilt: 1.0, shake: 0.6, sweat: 1.6, nod: 0.6, facepalm: 1.2, hold: 1.0, bounce: 1.0 };
+const BULL_DEF = { wave: 1.2, point: 1.2, cheer: 1.2, type: 1.5, write: 1.0, shrug: 1.0, jump: 0.6, tilt: 1.0, shake: 0.6, sweat: 1.6, nod: 0.6, facepalm: 1.2, hold: 1.0, bounce: 1.0, pose: 1.0, sleep: 2.0, turn: 1.0 };
 
 export class Bull extends Actor {
   constructor(cfg, scene) { super(cfg, scene, BULL_DEF); }
@@ -133,7 +133,10 @@ export class Bull extends Actor {
     const speaking = this.speaking(t);
     const mouth = speaking ? tl.mouth(t) : 0;
     const en = speaking ? tl.energy(t) : 0;
-    return { x: x + sx, y: y - b.hop - jy, ground: y, s: b.scale, face: b.face, sq, mouth, en, moving: b._moving };
+    // turn: a smooth extra turn to the side the bull already faces (3/4 view gets stronger)
+    let face = b.face;
+    for (const [a, w] of this.acts(t, 'turn')) face += (a.by ?? 1.4) * (Math.sign(b.face) || 1) * w;
+    return { x: x + sx, y: y - b.hop - jy, ground: y, s: b.scale, face, sq, mouth, en, moving: b._moving };
   }
 
   arms(t, st) {
@@ -154,6 +157,8 @@ export class Bull extends Actor {
     for (const [, w] of this.acts(t, 'shrug')) { set('L', 72, w); set('R', 72, w); }
     for (const [, w] of this.acts(t, 'hold')) { set('L', 45, w); set('R', 45, w); }
     for (const [, w] of this.acts(t, 'facepalm')) { set(F, 168, w); palm = w; }
+    // explicit arm angles (degrees, 0 = down along the body, 90 = straight out to the side, 180 = up)
+    for (const [a, w] of this.acts(t, 'pose')) { if (a.L != null) set('L', a.L, w); if (a.R != null) set('R', a.R, w); }
     return { L, R, marker, F, palm };
   }
 
@@ -161,6 +166,12 @@ export class Bull extends Actor {
     const st = this.state(t);
     const s = st.s;
     if (name === 'head') return [st.x, st.y - 420 * s];
+    if (name === 'handL' || name === 'handR') {
+      // centre of the mitten for that arm, in world units
+      const a = this.arms(t, st), side = name === 'handR' ? 1 : -1;
+      const raise = ((side > 0 ? a.R : a.L) * Math.PI) / 180;
+      return [st.x + side * (108 + Math.sin(raise) * 162) * s, st.y + (-282 + Math.cos(raise) * 162) * s];
+    }
     if (name === 'hand') {
       const a = this.arms(t, st);
       const side = a.F === 'R' ? 1 : -1, ang = ((side > 0 ? a.R : a.L) * Math.PI) / 180;
@@ -187,7 +198,8 @@ export class Bull extends Actor {
     let nod = 0;
     for (const [a] of this.acts(t, 'nod')) nod += Math.sin((t - a._t) * 18) * 10 * (1 - (t - a._t) / a._d);
     const headY = -st.mouth * 5 + nod;
-    const lid = Math.max(m.lid, this.blink(t));
+    let lid = Math.max(m.lid, this.blink(t));
+    for (const [, w] of this.acts(t, 'sleep')) lid = Math.max(lid, w);
     const O = PAL.outline;
 
     const arm = (side, raise) => {

@@ -53,21 +53,25 @@ const scene = (t) => {
   return s;
 };
 
-// the sign: planted (post in the sand) or carried
-const sign = (t) => {
-  const k = stage(t), moving = MOVES.some(([a, b]) => t >= a && t < b);
-  const x = signX(t);
-  const lift = moving ? -70 : 0, tilt = moving ? -12 : Math.sin(t * 2) * 1.5;
-  const fallen = t > BIG[0] + 0.9;
-  if (fallen) return `<g transform="translate(${POS[3] + 60} ${GROUND - 20}) rotate(-80)"><rect x="-8" y="-260" width="16" height="260" fill="#8a5a32"/><rect x="-110" y="-330" width="220" height="110" rx="10" fill="#f4efe2" stroke="#141414" stroke-width="7"/></g>`;
-  let s = `<g transform="translate(${x.toFixed(1)} ${GROUND - 40 + lift}) rotate(${tilt.toFixed(1)})">
-    <rect x="-9" y="-300" width="18" height="300" rx="4" fill="#8a5a32" stroke="#141414" stroke-width="5"/>
-    <rect x="-105" y="-390" width="210" height="110" rx="12" fill="#f4efe2" stroke="#141414" stroke-width="8"/>
-    <text data-qa="world" data-g="sl" x="0" y="-318" text-anchor="middle" font-family="Luckiest Guy" font-size="48" fill="#141414">STOP LOSS</text></g>`;
-  if (!moving) s += `<ellipse cx="${x}" cy="${GROUND - 36}" rx="60" ry="10" fill="#b9875a" opacity="0.7"/>`;
-  // loss label above the sign
+// the sign follows the bull's left hand: planted (post in the sand, hand gripping it) or lifted and carried
+const GRIP = 175; // bull stands this far right of the post so its left mitten sits on the pole
+const sign = (t, sc) => {
+  const k = stage(t), moving = MOVES.some(([a, b]) => t >= a - 0.25 && t < b + 0.1);
+  const fallen = t > BIG[0] + 0.7;
+  if (fallen) return `<g transform="translate(${POS[3] - 40} ${GROUND - 20}) rotate(-78)"><rect x="-9" y="-300" width="18" height="300" fill="#8a5a32" stroke="#141414" stroke-width="5"/><rect x="-105" y="-390" width="210" height="110" rx="12" fill="#f4efe2" stroke="#141414" stroke-width="7"/></g>`;
+  const bull = sc.actors.find((a) => a.id === 'bull');
+  const [hx, hy] = bull.anchor('handL', t);
+  // planted: the post stands in the sand; carried: it rides in the hand, tilted toward the walk
+  const lift = MOVES.reduce((m, [a, b]) => Math.max(m, Math.min(1, (t - a + 0.25) / 0.3, (b + 0.1 - t) / 0.3)), 0);
+  const bottom = lerp(GROUND - 30, hy + 110, Math.max(0, lift));
+  const x = hx, tilt = moving ? -10 * Math.max(0, lift) : Math.sin(t * 2) * 1.2;
+  let s = `<g transform="translate(${x.toFixed(1)} ${bottom.toFixed(1)}) rotate(${tilt.toFixed(1)})">
+    <rect x="-9" y="-310" width="18" height="310" rx="4" fill="#8a5a32" stroke="#141414" stroke-width="5"/>
+    <rect x="-185" y="-400" width="210" height="110" rx="12" fill="#f4efe2" stroke="#141414" stroke-width="8"/>
+    <text data-qa="world" data-g="sl" x="-80" y="-328" text-anchor="middle" font-family="Luckiest Guy" font-size="48" fill="#141414">STOP LOSS</text></g>`;
+  if (lift <= 0) s += `<ellipse cx="${x.toFixed(1)}" cy="${GROUND - 26}" rx="56" ry="9" fill="#b9875a" opacity="0.7"/>`;
   const pop = Math.min(1, (t - (k ? MOVES[k - 1][1] : 0)) / 0.3);
-  s += `<g transform="translate(${x.toFixed(1)} ${GROUND - 500 + lift}) scale(${(0.6 + 0.4 * pop).toFixed(2)})"><text data-qa="world" data-g="loss" x="0" y="0" text-anchor="middle" font-family="Luckiest Guy" font-size="${74 + k * 10}" fill="#ef5350" stroke="#141414" stroke-width="8" paint-order="stroke">${LOSS[k]}</text></g>`;
+  s += `<g transform="translate(${(x - 80).toFixed(1)} ${(bottom - 470).toFixed(1)}) scale(${(0.6 + 0.4 * pop).toFixed(2)})"><text data-qa="world" data-g="loss" x="0" y="0" text-anchor="middle" font-family="Luckiest Guy" font-size="${74 + k * 10}" fill="#ef5350" stroke="#141414" stroke-width="8" paint-order="stroke">${LOSS[k]}</text></g>`;
   return s;
 };
 
@@ -105,9 +109,8 @@ export default {
   actors: [{
     kind: 'bull', id: 'bull',
     path: [
-      { at: 0, x: POS[0] + 245, y: GROUND, face: -1, scale: 0.7 },
-      ...MOVES.map(([a, b], k) => ({ at: b, x: POS[k + 1] + 245, move: b - a })),
-      { at: BIG[0] + 0.9, x: POS[3] + 245, move: 0.2 },
+      { at: 0, x: POS[0] + GRIP, y: GROUND, face: -1, scale: 0.7 },
+      ...MOVES.map(([a, b], k) => ({ at: b, x: POS[k + 1] + GRIP, move: b - a })),
     ],
     moods: [
       { at: 0, mood: 'determined' }, { at: 1.6, mood: 'worried' }, { at: 3.2, mood: 'neutral' }, { at: 4.4, mood: 'worried' },
@@ -116,7 +119,12 @@ export default {
     ],
     looks: [{ at: 0, look: 'left' }, { at: BIG[0], look: 'upleft' }, { at: BIG[1], look: 'down' }],
     actions: [
-      ...MOVES.flatMap(([a, b]) => [{ at: a - 0.1, do: 'grab', dur: 0.4 }, { at: a + 0.2, do: 'sweat', dur: b - a }, { at: b, do: 'grab', dur: 0.3 }]),
+      // the left mitten grips the post the whole time, lower while carrying it
+      { at: 0, do: 'pose', dur: BIG[0] + 0.7, L: 58, ramp: 0.2 },
+      ...MOVES.map(([a, b]) => ({ at: a - 0.25, do: 'pose', dur: b - a + 0.35, L: 34, R: 40, ramp: 0.25 })),
+      // turn side-on while pulling the post up and carrying it
+      ...MOVES.map(([a, b]) => ({ at: a - 0.3, do: 'turn', dur: b - a + 0.5, by: 1.6, ramp: 0.3 })),
+      ...MOVES.map(([a, b]) => ({ at: a + 0.1, do: 'sweat', dur: b - a })),
       { at: BIG[0] + 0.5, do: 'shake', dur: 0.6 },
       { at: BIG[1] + 0.2, do: 'facepalm', dur: 1.4 },
     ],
@@ -124,7 +132,7 @@ export default {
 
   props: [
     { type: 'custom', layer: 'back', at: 0, draw: (t) => scene(t) },
-    { type: 'custom', layer: 'back', at: 0, until: CARD + 0.6, draw: (t) => sign(t) },
+    { type: 'custom', layer: 'back', at: 0, until: CARD + 0.6, draw: (t, sc) => sign(t, sc) },
     { type: 'custom', layer: 'front', at: BIG[0], until: BIG[1] + 1.3, draw: (t) => bigWave(t) },
     { type: 'title', at: 0.05, until: 1.9, text: "WHERE'S YOUR\n*STOP?*", y: 330 },
     { type: 'title', at: BIG[0] + 0.9, until: CARD, text: '*-$3,200*', y: 420, size: 170, keyColor: '#ef5350', sfx: false },
